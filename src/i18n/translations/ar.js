@@ -528,6 +528,16 @@ export default {
     orderDetails: "تفاصيل الطلب",
     specialInstructions: "تعليمات خاصة",
     actionButtons: "أزرار الإجراءات",
+    filterOptions:"اضغط للفلترة السريعة",
+    filterByPayment: "تصفية حسب الدفع",
+    allPayments:"كل المدفوعات",
+    mobilePayment: "الدفع المحمول",
+    cash: "الدفع الفوري",
+    creditCard: "بطاقة الائتمان",
+    sortby: "الترتيب بالاحدث",
+    sortNewest: "الترتيب بالاحدث",
+    sortOldest: "الترتيب بالاقدم",
+    
 
     // OrdersScreen specific translations
     manageAndTrackOrders: "إدارة وتتبع جميع الطلبات",
