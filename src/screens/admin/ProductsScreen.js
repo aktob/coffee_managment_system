@@ -45,7 +45,6 @@ const ProductsScreen = () => {
 
 
 
-
   // New i added
 const [formVisible, setFormVisible] = useState(false);
 const [name, setName] = useState("");
@@ -56,9 +55,6 @@ const [stock, setStock] = useState("");
 const [isEditing, setIsEditing] = useState(false);
 const [editProductId, setEditProductId] = useState(null);
   // New i added
-
-
-
 
 
   // Mock product data
@@ -190,6 +186,7 @@ const [editProductId, setEditProductId] = useState(null);
   };
 
 
+
   // New i added
   const handleAddProduct = () => {
     if (!name || !price) {
@@ -272,6 +269,7 @@ const [editProductId, setEditProductId] = useState(null);
         text: t("common.delete"),
         style: "destructive",
         onPress: () => {
+
           setProducts((prevProducts) =>
             prevProducts.filter((p) => p.id !== product.id)
           );
@@ -291,6 +289,7 @@ const [editProductId, setEditProductId] = useState(null);
     );  
   };
   // New i added
+
 
 
 
@@ -809,6 +808,7 @@ const [editProductId, setEditProductId] = useState(null);
       color: "#6b4f42",
       textAlign: "center",
     },
+
      inputField: {
   backgroundColor: "#fff",
   borderWidth: 1,
@@ -819,6 +819,7 @@ const [editProductId, setEditProductId] = useState(null);
   color: "#4e342e",
   marginBottom: 12,
 }
+
   });
 
   return (
@@ -928,7 +929,9 @@ const [editProductId, setEditProductId] = useState(null);
         </View>
 
         {/* Add Product Button */}
+
         <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
+
           {renderIcon("Plus", 22, "#fff")}
           <Text style={styles.addButtonText}>{t("admin.addNewProduct")}</Text>
         </TouchableOpacity>
@@ -955,6 +958,7 @@ const [editProductId, setEditProductId] = useState(null);
           )}
         </View>
       </ScrollView>
+
 
 
 
@@ -1024,9 +1028,6 @@ const [editProductId, setEditProductId] = useState(null);
   </View>
 )}
  {/* New i added */}
-
-
-
 
 
     </View>

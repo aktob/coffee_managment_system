@@ -20,6 +20,6 @@
       },
       "package": "com.coffe.app"
     },
-    "platforms": ["ios", "android"]
+    "platforms": ["ios", "android", "web"]
   }
 }

@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   languageButton: {
-      bottom: 680,
+    bottom: 680,
     left: 120,
     flexDirection: "row",
     alignItems: "center",
