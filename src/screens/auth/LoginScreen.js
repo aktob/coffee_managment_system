@@ -125,7 +125,6 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <LinearGradient
         colors={["#F4A460", "#D2691E", "#8B4513"]}
@@ -159,9 +158,6 @@ const LoginScreen = () => {
               </View>
             </View>
             <Text style={styles.title}>{t("auth.loginTitle")}</Text>
-            <Text style={styles.subtitle}>
-              Welcome back! Please sign in to continue
-            </Text>
           </Animated.View>
 
           {/* Login Form Card */}
@@ -466,9 +462,11 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   languageButton: {
+    bottom: 680,
+    left: 120,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "#ffffffe6",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,

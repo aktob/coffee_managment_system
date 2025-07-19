@@ -43,8 +43,22 @@ const ProductsScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState("grid"); // grid or list
 
+
+
+  // New i added
+const [formVisible, setFormVisible] = useState(false);
+const [name, setName] = useState("");
+const [category, setCategory] = useState("hot");
+const [price, setPrice] = useState("");
+const [description, setDescription] = useState("");
+const [stock, setStock] = useState("");
+const [isEditing, setIsEditing] = useState(false);
+const [editProductId, setEditProductId] = useState(null);
+  // New i added
+
+
   // Mock product data
-  const products = [
+  const [products, setProducts] = useState([
     {
       id: 1,
       name: "Espresso",
@@ -105,7 +119,7 @@ const ProductsScreen = () => {
       sales: 67,
       image: "🍰",
     },
-  ];
+  ]);
 
   const categories = ["all", "hot", "cold", "food", "snacks"];
 
@@ -171,17 +185,80 @@ const ProductsScreen = () => {
     }
   };
 
+
+
+  // New i added
   const handleAddProduct = () => {
-    Alert.alert(t("admin.addProduct"), t("admin.addProductMessage"));
-  };
+    if (!name || !price) {
+      Alert.alert("Error", "Please enter name and price");
+      return;
+    }
+     
 
-  const handleEditProduct = (product) => {
-    Alert.alert(
-      t("admin.editProduct"),
-      `${t("admin.editProduct")} ${product.name}`
+  if (isEditing) {
+    const updatedProducts = products.map((item) =>
+      item.id === editProductId
+        ? {
+            ...item,
+            name,
+            category,
+            price: parseFloat(price),
+            description,
+            stock: parseInt(stock),
+          }
+        : item
     );
-  };
+    setProducts(updatedProducts);
+    Alert.alert(t("admin.editProduct"), t("admin.editProductMessage"));
+  } else {
+    const newProduct = {
+      id: products.length + 1,
+      name,
+      category,
+      price: parseFloat(price),
+      description,
+      stock: parseInt(stock),
+      available: true,
+      sales: 0,
+      rating: 0,
+      image: "☕",
+    };
+    setProducts([...products, newProduct]);
+    Alert.alert(t("admin.addProduct"), t("admin.addProductMessage"));
+  }
 
+
+
+    
+  // reset form
+    setFormVisible(false); // يخفي الفورم
+  // يفضي القيم بعد الإضافة
+    setName("");
+    setPrice("");
+    setCategory("hot");
+    setDescription("");
+    setStock("");
+    setIsEditing(false);
+    setEditProductId(null);
+  };
+  // New i added
+
+
+  // New i added
+  const handleEditProduct = (product) => {
+    setName(product.name);
+  setCategory(product.category);
+  setPrice(product.price.toString());
+  setDescription(product.description);
+  setStock(product.stock.toString());
+  setFormVisible(true);
+  setIsEditing(true);
+  setEditProductId(product.id);
+  };
+  // New i added
+
+
+  // New i added
   const handleDeleteProduct = (product) => {
     Alert.alert(t("admin.deleteProduct"), t("admin.deleteProductConfirm"), [
       {
@@ -192,17 +269,29 @@ const ProductsScreen = () => {
         text: t("common.delete"),
         style: "destructive",
         onPress: () => {
-          console.log("Delete product:", product.id);
-          Alert.alert(t("common.success"), t("admin.productDeleted"));
+
+          setProducts((prevProducts) =>
+            prevProducts.filter((p) => p.id !== product.id)
+          );
         },
       },
     ]);
   };
+  // New i added
 
+
+
+  // New i added
   const handleToggleAvailability = (product) => {
-    console.log("Toggle product:", product.id, !product.active);
-    Alert.alert(t("common.success"), t("admin.productUpdated"));
+    product.available = !product.available;
+    setProducts((prevProducts) =>
+      prevProducts.map((p) => (p.id === product.id ? product : p))
+    );  
   };
+  // New i added
+
+
+
 
   const renderProductCard = (product) => {
     if (viewMode === "grid") {
@@ -719,6 +808,18 @@ const ProductsScreen = () => {
       color: "#6b4f42",
       textAlign: "center",
     },
+
+     inputField: {
+  backgroundColor: "#fff",
+  borderWidth: 1,
+  borderColor: "#ddd",
+  padding: 12,
+  borderRadius: 10,
+  fontSize: 16,
+  color: "#4e342e",
+  marginBottom: 12,
+}
+
   });
 
   return (
@@ -828,7 +929,9 @@ const ProductsScreen = () => {
         </View>
 
         {/* Add Product Button */}
-        <TouchableOpacity style={styles.addButton} onPress={handleAddProduct}>
+
+        <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
+
           {renderIcon("Plus", 22, "#fff")}
           <Text style={styles.addButtonText}>{t("admin.addNewProduct")}</Text>
         </TouchableOpacity>
@@ -855,6 +958,78 @@ const ProductsScreen = () => {
           )}
         </View>
       </ScrollView>
+
+
+
+
+ {/* New i added */}
+{formVisible && (
+  <View
+    style={{
+      backgroundColor: "#fff",
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 170,
+      elevation: 4,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }}
+  >
+    <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
+      {t("admin.addNewProduct")}
+    </Text>
+
+    <TextInput
+      placeholder="Product Name"
+      value={name}
+      onChangeText={setName}
+      style={styles.inputField}
+    />
+
+
+    <TextInput
+      placeholder="Price"
+      value={price}
+      onChangeText={setPrice}
+      keyboardType="numeric"
+      style={styles.inputField}
+    />
+    <TextInput
+      placeholder="Description"
+      value={description}
+      onChangeText={setDescription}
+      style={styles.inputField}
+    />
+    <TextInput
+      placeholder="Stock"
+      value={stock}
+      onChangeText={setStock}
+      keyboardType="numeric"
+      style={styles.inputField}
+    />
+
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
+      <TouchableOpacity
+        onPress={handleAddProduct}
+        style={[styles.addButton, { flex: 1, marginRight: 6 }]}
+      >
+        <Text style={styles.addButtonText}>Save</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => setFormVisible(false)}
+        style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginLeft: 6 }]}
+      >
+        <Text style={styles.addButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+ {/* New i added */}
+
+
     </View>
   );
 };
