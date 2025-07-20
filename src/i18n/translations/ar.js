@@ -99,6 +99,11 @@ export default {
     invalidCredentials: "بريد إلكتروني أو كلمة مرور غير صحيحة",
     loginSuccess: "تم تسجيل الدخول بنجاح",
     loginError: "فشل تسجيل الدخول",
+    invalidEmail: "الإيميل غير صحيح",
+    shortPassword: "كلمة السر قصيرة جدًا (أقل من 6 حروف)",
+    fillAllFields: "يرجى ملء جميع الحقول",
+    emailHint: "أدخل عنوان بريدك الإلكتروني",
+    passwordHint: "أدخل كلمة السر الخاصة بك",
   },
   supervisor: {
     dashboard: "لوحة التحكم",

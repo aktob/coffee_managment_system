@@ -98,7 +98,7 @@ const OrdersScreen = () => {
       setLoading(true);
       setError(null);
       
-      const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYXBpLWNvZmZlZS5tLXplZGFuLmNvbS9hcGkvYWRtaW4vYXV0aC9sb2dpbiIsImlhdCI6MTc1Mjg4NDc0NiwiZXhwIjoxNzUyODg4MzQ2LCJuYmYiOjE3NTI4ODQ3NDYsImp0aSI6IkJiZnZzY2p6ME9UQ05rVGQiLCJzdWIiOiIxNSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjcifQ.kHd1iZQuP5QxWD95nOMMmTVSV2fGDdO6HGynMwMNBb0";
+      const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYXBpLWNvZmZlZS5tLXplZGFuLmNvbS9hcGkvYWRtaW4vYXV0aC9sb2dpbiIsImlhdCI6MTc1MzAxOTAwNSwiZXhwIjoxNzUzMDIyNjA1LCJuYmYiOjE3NTMwMTkwMDUsImp0aSI6IllvQ2wxeUVKc2g5QThjVFEiLCJzdWIiOiIxNSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjcifQ.lAPTE4qIaeM9Eco0XGWusb5JY1zxC-mFvV4dSYRVyvA";
       const response = await fetch("http://api-coffee.m-zedan.com/api/admin/orders", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1137,3 +1137,4 @@ const OrdersScreen = () => {
 };
 
 export default OrdersScreen;
+
