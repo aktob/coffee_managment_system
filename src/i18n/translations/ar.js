@@ -99,6 +99,11 @@ export default {
     invalidCredentials: "بريد إلكتروني أو كلمة مرور غير صحيحة",
     loginSuccess: "تم تسجيل الدخول بنجاح",
     loginError: "فشل تسجيل الدخول",
+    invalidEmail: "الإيميل غير صحيح",
+    shortPassword: "كلمة السر قصيرة جدًا (أقل من 6 حروف)",
+    fillAllFields: "يرجى ملء جميع الحقول",
+    emailHint: "أدخل عنوان بريدك الإلكتروني",
+    passwordHint: "أدخل كلمة السر الخاصة بك",
   },
   supervisor: {
     dashboard: "لوحة التحكم",
@@ -529,6 +534,16 @@ export default {
     orderDetails: "تفاصيل الطلب",
     specialInstructions: "تعليمات خاصة",
     actionButtons: "أزرار الإجراءات",
+    filterOptions:"اضغط للفلترة السريعة",
+    filterByPayment: "تصفية حسب الدفع",
+    allPayments:"كل المدفوعات",
+    mobilePayment: "الدفع المحمول",
+    cash: "الدفع الفوري",
+    creditCard: "بطاقة الائتمان",
+    sortby: "الترتيب بالاحدث",
+    sortNewest: "الترتيب بالاحدث",
+    sortOldest: "الترتيب بالاقدم",
+    
 
     // OrdersScreen specific translations
     manageAndTrackOrders: "إدارة وتتبع جميع الطلبات",

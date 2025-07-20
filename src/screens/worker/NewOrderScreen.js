@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,145 +7,67 @@ import {
   TextInput,
   StyleSheet,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   Coffee,
-  Zap,
   Sun,
-  Utensils,
   Snowflake,
+  Utensils,
   Clock,
-  CupSoda,
-  Star,
-  TrendingUp,
-  RotateCcw,
-  Croissant,
-  Sandwich,
-  CakeSlice,
   Plus,
   Minus,
   X,
   Send,
-  GlassWater,
 } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
+const BASE_URL = "http://api-coffee.m-zedan.com/api"; // استبدل بالـ base_url الصحيح
+const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYXBpLWNvZmZlZS5tLXplZGFuLmNvbS9hcGkvYWRtaW4vYXV0aC9sb2dpbiIsImlhdCI6MTc1MzAxOTAwNSwiZXhwIjoxNzUzMDIyNjA1LCJuYmYiOjE3NTMwMTkwMDUsImp0aSI6IllvQ2wxeUVKc2g5QThjVFEiLCJzdWIiOiIxNSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjcifQ.lAPTE4qIaeM9Eco0XGWusb5JY1zxC-mFvV4dSYRVyvA";
 
 const NewOrderScreen = () => {
   const { t } = useTranslation();
   const { currentLanguage } = useSelector((state) => state.language);
   const isRTL = currentLanguage === "ar";
-  const [customerName, setCustomerName] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("hot");
+  const [customerName, setCustomerName] = useState("تجريبي1");
   const [cart, setCart] = useState([]);
+  const [products, setProducts] = useState({ hot: [], cold: [], food: [] });
+  const [loading, setLoading] = useState(true);
 
-  const products = {
-    hot: [
-      {
-        id: 1,
-        name: "Espresso",
-        price: 2.99,
-        description: "Strong and pure coffee shot",
-        icon: "Coffee",
-        preparationTime: "2 min",
-        popularity: "Popular",
-        popularityIcon: "Star",
-      },
-      {
-        id: 2,
-        name: "Cappuccino",
-        price: 3.99,
-        description: "Espresso with steamed milk foam",
-        icon: "Coffee",
-        preparationTime: "4 min",
-        popularity: "Best Seller",
-        popularityIcon: "Star",
-      },
-      {
-        id: 3,
-        name: "Americano",
-        price: 2.49,
-        description: "Espresso with hot water",
-        icon: "Coffee",
-        preparationTime: "3 min",
-        popularity: "",
-        popularityIcon: "",
-      },
-    ],
-    cold: [
-      {
-        id: 4,
-        name: "Iced Latte",
-        price: 4.49,
-        description: "Espresso with cold milk and ice",
-        icon: "CupSoda",
-        preparationTime: "3 min",
-        popularity: "Refreshing",
-        popularityIcon: "RotateCcw",
-      },
-      {
-        id: 5,
-        name: "Frappuccino",
-        price: 4.99,
-        description: "Blended coffee drink",
-        icon: "CupSoda",
-        preparationTime: "5 min",
-        popularity: "Trending",
-        popularityIcon: "TrendingUp",
-      },
-      {
-        id: 6,
-        name: "Cold Brew",
-        price: 3.99,
-        description: "Smooth and bold cold coffee",
-        icon: "CupSoda",
-        preparationTime: "2 min",
-        popularity: "",
-        popularityIcon: "",
-      },
-    ],
-    food: [
-      {
-        id: 7,
-        name: "Croissant",
-        price: 2.49,
-        description: "Buttery and flaky pastry",
-        icon: "Croissant",
-        preparationTime: "1 min",
-        popularity: "Fresh",
-        popularityIcon: "RotateCcw",
-      },
-      {
-        id: 8,
-        name: "Sandwich",
-        price: 5.99,
-        description: "Fresh and tasty sandwich",
-        icon: "Sandwich",
-        preparationTime: "3 min",
-        popularity: "Filling",
-        popularityIcon: "Utensils",
-      },
-      {
-        id: 9,
-        name: "Muffin",
-        price: 2.99,
-        description: "Sweet and moist muffin",
-        icon: "CakeSlice",
-        preparationTime: "1 min",
-        popularity: "",
-        popularityIcon: "",
-      },
-    ],
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/admin/products`, {
+        headers: {
+          Authorization: `Bearer ${token}`, 
+          "Content-Type": "application/json",
+        },
+      });
+      const result = await response.json();
+      console.log("API Response:", result);
+      if (result.data && Array.isArray(result.data)) {
+        const categorizedProducts = {
+          hot: result.data.filter((p) => p.category_id === "2"), // "بن" كـ hot
+          cold: result.data.filter((p) => p.category_id === "1"), // "مشروبات" كـ cold
+          food: [], // يمكن تكون فاضية حاليًا، لو فيه تصنيف جديد زوده
+        };
+        setProducts(categorizedProducts);
+      } else {
+        throw new Error("No products data found");
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      Alert.alert(t("worker.error"), t("worker.fetchProductsFailed"));
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const categories = [
-    { key: "hot", label: t("worker.hotDrinks"), icon: "Sun" },
-    { key: "cold", label: t("worker.coldDrinks"), icon: "Snowflake" },
-    { key: "food", label: t("worker.foodItems"), icon: "Utensils" },
-  ];
 
   const addToCart = (product) => {
     const existingItem = cart.find((item) => item.id === product.id);
@@ -170,89 +92,91 @@ const NewOrderScreen = () => {
   };
 
   const getTotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cart.reduce(
+      (total, item) => total + parseFloat(item.price) * item.quantity,
+      0
+    );
   };
 
   const getCartItemCount = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  const getTranslatedProductName = (productName) => {
-    const translations = {
-      Espresso: t("worker.espresso"),
-      Cappuccino: t("worker.cappuccino"),
-      Americano: t("worker.americano"),
-      "Iced Latte": t("worker.icedLatte"),
-      Frappuccino: t("worker.frappuccino"),
-      "Cold Brew": t("worker.coldBrew"),
-      Croissant: t("worker.croissant"),
-      Sandwich: t("worker.sandwich"),
-      Muffin: t("worker.muffin"),
-    };
-    return translations[productName] || productName;
-  };
-
-  const getTranslatedProductDescription = (productName) => {
-    const translations = {
-      Espresso: t("worker.strongPureCoffee"),
-      Cappuccino: t("worker.espressoWithMilk"),
-      Americano: t("worker.espressoWithWater"),
-      "Iced Latte": t("worker.espressoWithColdMilk"),
-      Frappuccino: t("worker.blendedCoffeeDrink"),
-      "Cold Brew": t("worker.smoothBoldCold"),
-      Croissant: t("worker.butteryFlakyPastry"),
-      Sandwich: t("worker.freshTastySandwich"),
-      Muffin: t("worker.sweetMoistMuffin"),
-    };
-    return translations[productName] || "";
-  };
-
-  const getTranslatedPopularity = (popularity) => {
-    const translations = {
-      Popular: t("worker.popular"),
-      "Best Seller": t("worker.bestSeller"),
-      Refreshing: t("worker.refreshing"),
-      Trending: t("worker.trending"),
-      Fresh: t("worker.fresh"),
-      Filling: t("worker.filling"),
-    };
-    return translations[popularity] || popularity;
-  };
+  const getTranslatedProductName = (productName) => productName || "";
+  const getTranslatedProductDescription = () => "";
+  const getTranslatedPopularity = () => "";
 
   const renderIcon = (iconName, size = 24, color = "#4e342e") => {
-    switch (iconName) {
-      case "Coffee":
-        return <Coffee size={size} color={color} />;
-      case "Sun":
-        return <Sun size={size} color={color} />;
-      case "Snowflake":
-        return <Snowflake size={size} color={color} />;
-      case "Utensils":
-        return <Utensils size={size} color={color} />;
-      case "Croissant":
-        return <Croissant size={size} color={color} />;
-      case "Sandwich":
-        return <Sandwich size={size} color={color} />;
-      case "CakeSlice":
-        return <CakeSlice size={size} color={color} />;
-      case "CupSoda":
-        return <CupSoda size={size} color={color} />;
-      case "Star":
-        return <Star size={size} color={color} />;
-      case "TrendingUp":
-        return <TrendingUp size={size} color={color} />;
-      case "RotateCcw":
-        return <RotateCcw size={size} color={color} />;
-      case "Plus":
-        return <Plus size={size} color={color} />;
-      case "Minus":
-        return <Minus size={size} color={color} />;
-      case "X":
-        return <X size={size} color={color} />;
-      case "Send":
-        return <Send size={size} color={color} />;
-      default:
-        return null;
+    const icons = {
+      Sun: <Sun size={size} color={color} />,
+      Snowflake: <Snowflake size={size} color={color} />,
+      Utensils: <Utensils size={size} color={color} />,
+      Coffee: <Coffee size={size} color={color} />,
+      Plus: <Plus size={size} color={color} />,
+      Minus: <Minus size={size} color={color} />,
+      X: <X size={size} color={color} />,
+      Send: <Send size={size} color={color} />,
+    };
+    return icons[iconName] || <Coffee size={size} color={color} />;
+  };
+
+  const placeOrder = async () => {
+    console.log("Place Order button pressed!"); // للتحقق من الضغط
+    if (!customerName || cart.length === 0) {
+      // Alert.alert(t("worker.error"), t("worker.enterCustomerAndItems"));
+      console.log("worker.error");
+      console.log(customerName + cart.length);
+
+      return;
+    }
+
+    const orderData = {
+      customer_id: 10,
+      branch_id: 1,
+      user_id: 15,
+      total_amount: getTotal().toFixed(2),
+      payment_method: "cash",
+      items: cart.map((item) => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: parseFloat(item.price),
+        subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+      })),
+    };
+
+    // عرض الـ orderData قبل الطلب
+    console.log("Order Data being sent:", orderData);
+
+    try {
+      const response = await fetch(`${BASE_URL}/admin/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("API Response Status:", response.status);
+      console.log("API Response:", result);
+
+      if (response.ok) {
+        Alert.alert(t("worker.success"), t("worker.orderPlaced"));
+        setCart([]);
+        setCustomerName("");
+      } else {
+        const errorMessage =
+          result.message || `Error ${response.status}: Failed to place order`;
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error placing order:", error.message);
+      Alert.alert(t("worker.error"), error.message); // عرض الخطأ للمستخدم
     }
   };
 
@@ -300,34 +224,14 @@ const NewOrderScreen = () => {
       color: "#4e342e",
       textAlign: isRTL ? "right" : "left",
     },
-    categoryButton: {
-      marginRight: isRTL ? 0 : 16,
-      marginLeft: isRTL ? 16 : 0,
-      paddingVertical: 16,
-      paddingHorizontal: 24,
-      borderRadius: 20,
-      elevation: 4,
-      backgroundColor: "#fffaf5",
-      borderWidth: 1,
-      borderColor: "#e5d4c0",
-    },
-    categoryButtonSelected: { backgroundColor: "#6d4c41" },
-    categoryIcon: { marginBottom: 4, alignItems: "center" },
-    categoryLabel: {
-      fontWeight: "600",
-      color: "#4e342e",
-      textAlign: "center",
-    },
-    categoryLabelSelected: { color: "#fff" },
+    categorySection: { marginBottom: 16 },
     productsContainer: {
       flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
       gap: 12,
     },
-    productsContainerRTL: {
-      flexDirection: "row-reverse",
-    },
+    productsContainerRTL: { flexDirection: "row-reverse" },
     productCard: {
       backgroundColor: "#fffaf5",
       borderRadius: 16,
@@ -360,21 +264,6 @@ const NewOrderScreen = () => {
       marginBottom: 6,
       lineHeight: 20,
       textAlign: isRTL ? "right" : "left",
-    },
-    productPopularity: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      alignItems: "center",
-      backgroundColor: "#f0c7b4",
-      paddingHorizontal: 6,
-      paddingVertical: 3,
-      borderRadius: 8,
-    },
-    productPopularityText: {
-      fontSize: 9,
-      color: "#4e342e",
-      marginLeft: isRTL ? 0 : 3,
-      marginRight: isRTL ? 3 : 0,
-      fontWeight: "600",
     },
     productDescription: {
       color: "#6b4f42",
@@ -559,8 +448,11 @@ const NewOrderScreen = () => {
       marginRight: isRTL ? 0 : 8,
       marginLeft: isRTL ? 8 : 0,
     },
-    productsContainerRTL: {
-      flexDirection: "row-reverse",
+    productsContainerRTL: { flexDirection: "row-reverse" },
+    loadingText: {
+      textAlign: "center",
+      fontSize: 16,
+      color: "#4e342e",
     },
   });
 
@@ -591,102 +483,185 @@ const NewOrderScreen = () => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("worker.selectCategory")}</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            inverted={isRTL}
-            contentContainerStyle={
-              isRTL ? { flexDirection: "row-reverse" } : {}
-            }
-          >
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.key}
-                onPress={() => setSelectedCategory(category.key)}
-                style={[
-                  styles.categoryButton,
-                  selectedCategory === category.key &&
-                    styles.categoryButtonSelected,
-                ]}
-              >
-                <View style={styles.categoryIcon}>
-                  {renderIcon(
-                    category.icon,
-                    24,
-                    selectedCategory === category.key ? "#fff" : "#4e342e"
-                  )}
-                </View>
-                <Text
-                  style={[
-                    styles.categoryLabel,
-                    selectedCategory === category.key &&
-                      styles.categoryLabelSelected,
-                  ]}
-                >
-                  {category.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("worker.availableItems")}</Text>
-          <View
-            style={[
-              styles.productsContainer,
-              isRTL && styles.productsContainerRTL,
-            ]}
-          >
-            {products[selectedCategory].map((product) => (
-              <View key={product.id} style={styles.productCard}>
-                <View style={styles.productHeader}>
-                  <View style={styles.productImageContainer}>
-                    {renderIcon(product.icon, 28, "#4e342e")}
-                  </View>
-                  {product.popularity && (
-                    <View style={styles.productPopularity}>
-                      {renderIcon(product.popularityIcon, 10, "#4e342e")}
-                      <Text style={styles.productPopularityText}>
-                        {getTranslatedPopularity(product.popularity)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.productContent}>
-                  <Text style={styles.productName}>
-                    {getTranslatedProductName(product.name)}
+          {loading ? (
+            <Text style={styles.loadingText}>{t("worker.loading")}</Text>
+          ) : (
+            <>
+              {products.hot.length > 0 && (
+                <View style={styles.categorySection}>
+                  <Text style={styles.sectionTitle}>
+                    {t("worker.hotDrinks")}
                   </Text>
-                  <Text style={styles.productDescription}>
-                    {getTranslatedProductDescription(product.name)}
-                  </Text>
+                  <View
+                    style={[
+                      styles.productsContainer,
+                      isRTL && styles.productsContainerRTL,
+                    ]}
+                  >
+                    {products.hot.map((product) => (
+                      <View key={product.id} style={styles.productCard}>
+                        <View style={styles.productHeader}>
+                          <View style={styles.productImageContainer}>
+                            {renderIcon("Coffee", 28, "#4e342e")}
+                          </View>
+                        </View>
 
-                  <View style={styles.productFooter}>
-                    <View style={styles.productInfo}>
-                      <Text style={styles.productPrice}>
-                        ${product.price.toFixed(2)}
-                      </Text>
-                      <View style={styles.productTimeContainer}>
-                        {renderIcon("Clock", 12, "#6b4f42")}
-                        <Text style={styles.productTime}>
-                          {product.preparationTime}
-                        </Text>
+                        <View style={styles.productContent}>
+                          <Text style={styles.productName}>
+                            {getTranslatedProductName(product.name)}
+                          </Text>
+                          <Text style={styles.productDescription}>
+                            {getTranslatedProductDescription()}
+                          </Text>
+
+                          <View style={styles.productFooter}>
+                            <View style={styles.productInfo}>
+                              <Text style={styles.productPrice}>
+                                ${parseFloat(product.price).toFixed(2)}
+                              </Text>
+                              <View style={styles.productTimeContainer}>
+                                {renderIcon("Clock", 12, "#6b4f42")}
+                                <Text style={styles.productTime}>2 min</Text>
+                              </View>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.addButton}
+                              onPress={() =>
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: parseFloat(product.price),
+                                })
+                              }
+                            >
+                              {renderIcon("Plus", 18, "#fff")}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
                       </View>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.addButton}
-                      onPress={() => addToCart(product)}
-                    >
-                      {renderIcon("Plus", 18, "#fff")}
-                    </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
-              </View>
-            ))}
-          </View>
+              )}
+
+              {products.cold.length > 0 && (
+                <View style={styles.categorySection}>
+                  <Text style={styles.sectionTitle}>
+                    {t("worker.coldDrinks")}
+                  </Text>
+                  <View
+                    style={[
+                      styles.productsContainer,
+                      isRTL && styles.productsContainerRTL,
+                    ]}
+                  >
+                    {products.cold.map((product) => (
+                      <View key={product.id} style={styles.productCard}>
+                        <View style={styles.productHeader}>
+                          <View style={styles.productImageContainer}>
+                            {renderIcon("Snowflake", 28, "#4e342e")}
+                          </View>
+                        </View>
+
+                        <View style={styles.productContent}>
+                          <Text style={styles.productName}>
+                            {getTranslatedProductName(product.name)}
+                          </Text>
+                          <Text style={styles.productDescription}>
+                            {getTranslatedProductDescription()}
+                          </Text>
+
+                          <View style={styles.productFooter}>
+                            <View style={styles.productInfo}>
+                              <Text style={styles.productPrice}>
+                                ${parseFloat(product.price).toFixed(2)}
+                              </Text>
+                              <View style={styles.productTimeContainer}>
+                                {renderIcon("Clock", 12, "#6b4f42")}
+                                <Text style={styles.productTime}>2 min</Text>
+                              </View>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.addButton}
+                              onPress={() =>
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: parseFloat(product.price),
+                                })
+                              }
+                            >
+                              {renderIcon("Plus", 18, "#fff")}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {products.food.length > 0 && (
+                <View style={styles.categorySection}>
+                  <Text style={styles.sectionTitle}>
+                    {t("worker.foodItems")}
+                  </Text>
+                  <View
+                    style={[
+                      styles.productsContainer,
+                      isRTL && styles.productsContainerRTL,
+                    ]}
+                  >
+                    {products.food.map((product) => (
+                      <View key={product.id} style={styles.productCard}>
+                        <View style={styles.productHeader}>
+                          <View style={styles.productImageContainer}>
+                            {renderIcon("Utensils", 28, "#4e342e")}
+                          </View>
+                        </View>
+
+                        <View style={styles.productContent}>
+                          <Text style={styles.productName}>
+                            {getTranslatedProductName(product.name)}
+                          </Text>
+                          <Text style={styles.productDescription}>
+                            {getTranslatedProductDescription()}
+                          </Text>
+
+                          <View style={styles.productFooter}>
+                            <View style={styles.productInfo}>
+                              <Text style={styles.productPrice}>
+                                ${parseFloat(product.price).toFixed(2)}
+                              </Text>
+                              <View style={styles.productTimeContainer}>
+                                {renderIcon("Clock", 12, "#6b4f42")}
+                                <Text style={styles.productTime}>2 min</Text>
+                              </View>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.addButton}
+                              onPress={() =>
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: parseFloat(product.price),
+                                })
+                              }
+                            >
+                              {renderIcon("Plus", 18, "#fff")}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         {cart.length > 0 && (
@@ -757,9 +732,7 @@ const NewOrderScreen = () => {
                 </View>
                 <TouchableOpacity
                   style={styles.placeOrderButton}
-                  onPress={() => {
-                    // Handle order placement
-                  }}
+                  onPress={placeOrder}
                 >
                   <View style={styles.placeOrderButtonContent}>
                     {renderIcon("Send", 20, "#fff")}
