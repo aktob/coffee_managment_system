@@ -10,20 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-<<<<<<< HEAD
-=======
   ActivityIndicator,
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 } from "react-native";
 import { useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { Coffee, Mail, Lock, Eye, EyeOff, Globe } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-<<<<<<< HEAD
-=======
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 import {
   loginStart,
   loginSuccess,
@@ -32,17 +26,13 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
-<<<<<<< HEAD
-=======
 const loginUser = async (email, password) => {
   try {
-    // إيميل وباسورد ثابتين للعامل
     const WORKER_EMAIL = "worker@blal.com";
     const WORKER_PASSWORD = "worker123";
-    const ADMIN_EMAIL = "tgrybe560@blal.com"; 
-    const ADMIN_PASSWORD = "tgrybe560"; 
+    const ADMIN_EMAIL = "tgrybe560@blal.com";
+    const ADMIN_PASSWORD = "tgrybe560";
 
-    // لو الإيميل والباسورد هما الثابتين للعامل
     if (email === WORKER_EMAIL && password === WORKER_PASSWORD) {
       const response = await axios.post(
         "http://api-coffee.m-zedan.com/api/admin/auth/login",
@@ -52,7 +42,9 @@ const loginUser = async (email, password) => {
       console.log("API Response (Worker Login):", response.data);
       console.log("Access Token:", response.data.access_token);
       const { access_token, user } = response.data;
-      // رجّع الـ role كـ vendor مع بيانات المستخدم الثابتة
+      if (!access_token) {
+        throw new Error("No access token returned from API");
+      }
       return {
         user: { email: WORKER_EMAIL, name: "Worker" },
         role: "worker",
@@ -60,7 +52,6 @@ const loginUser = async (email, password) => {
       };
     }
 
-    // تسجيل الدخول العادي عبر الـ API
     const response = await axios.post(
       "http://api-coffee.m-zedan.com/api/admin/auth/login",
       { email, password },
@@ -68,7 +59,7 @@ const loginUser = async (email, password) => {
     );
     console.log("API Response:", response.data);
     const { access_token, user } = response.data;
-    const role = user.roles[0]?.name === "المدير" ? "admin" : "vendor";
+    const role = user.roles[0]?.name === "المدير" ? "admin" : "worker";
     return { user: { email: user.email, name: user.name }, role, token: access_token };
   } catch (error) {
     console.error("API Error:", error.response?.data || error.message);
@@ -78,8 +69,6 @@ const loginUser = async (email, password) => {
   }
 };
 
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 const LoginScreen = () => {
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
@@ -89,10 +78,6 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-<<<<<<< HEAD
-  // Animation values
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -100,11 +85,7 @@ const LoginScreen = () => {
   const isRTL = i18n.language === "ar";
 
   useEffect(() => {
-<<<<<<< HEAD
     // Start entrance animations
-=======
-    console.log("Rendering LoginScreen...");
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -119,9 +100,8 @@ const LoginScreen = () => {
     ]).start();
   }, []);
 
-<<<<<<< HEAD
-=======
   useEffect(() => {
+    // Real-time input validation
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError(t("auth.invalidEmail"));
     } else if (password && password.length < 6) {
@@ -131,7 +111,6 @@ const LoginScreen = () => {
     }
   }, [email, password, t]);
 
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   const shakeAnimation = () => {
     Animated.sequence([
       Animated.timing(shakeAnim, {
@@ -163,35 +142,6 @@ const LoginScreen = () => {
       setError("");
       dispatch(loginStart());
 
-<<<<<<< HEAD
-      // TODO: Replace with actual API call
-      if (email && password) {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        const mockRoles = {
-          "admin@coffee.com": "admin",
-          "supervisor@coffee.com": "supervisor",
-          "worker@coffee.com": "worker",
-        };
-
-        const role = mockRoles[email.toLowerCase()];
-
-        if (role && password === "password123") {
-          dispatch(
-            loginSuccess({
-              user: { email, name: email.split("@")[0] },
-              role,
-              token: "mock-token",
-            })
-          );
-        } else {
-          throw new Error("Invalid credentials");
-        }
-      } else {
-        throw new Error("Please fill in all fields");
-      }
-=======
       if (!email || !password) {
         throw new Error(t("auth.fillAllFields"));
       }
@@ -199,7 +149,6 @@ const LoginScreen = () => {
       const response = await loginUser(email, password);
       await AsyncStorage.setItem("authToken", response.token);
       dispatch(loginSuccess(response));
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     } catch (err) {
       dispatch(loginFailure(err.message));
       setError(err.message);
@@ -212,11 +161,8 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-<<<<<<< HEAD
-=======
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     >
       <LinearGradient
         colors={["#F4A460", "#D2691E", "#8B4513"]}
@@ -224,10 +170,6 @@ const LoginScreen = () => {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-<<<<<<< HEAD
-        {/* Background decoration */}
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
         <View style={styles.backgroundDecoration}>
           <View style={[styles.circle, styles.circle1]} />
           <View style={[styles.circle, styles.circle2]} />
@@ -237,10 +179,6 @@ const LoginScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-<<<<<<< HEAD
-          {/* Header Section */}
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
           <Animated.View
             style={[
               styles.headerContainer,
@@ -258,10 +196,6 @@ const LoginScreen = () => {
             <Text style={styles.title}>{t("auth.loginTitle")}</Text>
           </Animated.View>
 
-<<<<<<< HEAD
-          {/* Login Form Card */}
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
           <Animated.View
             style={[
               styles.formCard,
@@ -275,10 +209,6 @@ const LoginScreen = () => {
             ]}
           >
             <View style={styles.formContainer}>
-<<<<<<< HEAD
-              {/* Email Input */}
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>{t("common.email")}</Text>
                 <View style={styles.inputContainer}>
@@ -292,19 +222,12 @@ const LoginScreen = () => {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     textAlign={isRTL ? "right" : "left"}
-<<<<<<< HEAD
-=======
                     accessibilityLabel={t("common.email")}
                     accessibilityHint={t("auth.emailHint")}
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
                   />
                 </View>
               </View>
 
-<<<<<<< HEAD
-              {/* Password Input */}
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>{t("common.password")}</Text>
                 <View style={styles.inputContainer}>
@@ -317,11 +240,8 @@ const LoginScreen = () => {
                     placeholderTextColor="#999"
                     secureTextEntry={!showPassword}
                     textAlign={isRTL ? "right" : "left"}
-<<<<<<< HEAD
-=======
                     accessibilityLabel={t("common.password")}
                     accessibilityHint={t("auth.passwordHint")}
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
                   />
                   <TouchableOpacity
                     style={styles.eyeIcon}
@@ -336,32 +256,6 @@ const LoginScreen = () => {
                 </View>
               </View>
 
-<<<<<<< HEAD
-              {/* Error Message */}
-              {error ? (
-                <Animated.View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>
-                    {t("auth.invalidCredentials")}
-                  </Text>
-                </Animated.View>
-              ) : null}
-
-              {/* Demo Credentials */}
-              <View style={styles.demoContainer}>
-                <Text style={styles.demoTitle}>Demo Credentials:</Text>
-                <Text style={styles.demoText}>admin@coffee.com</Text>
-                <Text style={styles.demoText}>supervisor@coffee.com</Text>
-                <Text style={styles.demoText}>worker@coffee.com</Text>
-                <Text style={styles.demoText}>Password: password123</Text>
-              </View>
-
-              {/* Login Button */}
-              <TouchableOpacity
-                style={[
-                  styles.loginButton,
-                  isLoading && styles.loginButtonDisabled,
-                ]}
-=======
               {error ? (
                 <Animated.View style={styles.errorContainer}>
                   <Text style={styles.errorText}>{error}</Text>
@@ -370,7 +264,6 @@ const LoginScreen = () => {
 
               <TouchableOpacity
                 style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
                 onPress={handleLogin}
                 disabled={isLoading}
               >
@@ -380,27 +273,17 @@ const LoginScreen = () => {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-<<<<<<< HEAD
-                  <Text style={styles.loginButtonText}>
-                    {isLoading ? "Signing in..." : t("common.login")}
-                  </Text>
-=======
                   {isLoading ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.loginButtonText}>{t("common.login")}</Text>
                   )}
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           </Animated.View>
         </ScrollView>
 
-<<<<<<< HEAD
-        {/* Language Toggle */}
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
         <Animated.View
           style={[styles.languageContainer, { opacity: fadeAnim }]}
         >
@@ -489,15 +372,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-<<<<<<< HEAD
-  subtitle: {
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.9)",
-    textAlign: "center",
-    fontWeight: "400",
-  },
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   formCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
@@ -560,28 +434,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-<<<<<<< HEAD
-  demoContainer: {
-    backgroundColor: "#F0F9FF",
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: "#0EA5E9",
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0369A1",
-    marginBottom: 8,
-  },
-  demoText: {
-    fontSize: 12,
-    color: "#0369A1",
-    marginBottom: 2,
-    fontFamily: "monospace",
-  },
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   loginButton: {
     borderRadius: 12,
     overflow: "hidden",
@@ -603,20 +455,10 @@ const styles = StyleSheet.create({
   },
   languageContainer: {
     position: "absolute",
-<<<<<<< HEAD
-    bottom: 50,
-    alignSelf: "center",
-  },
-  languageButton: {
-      bottom: 680,
-    left: 120,
-=======
     top: 50,
-    right:50,
-    alignSelf: "center",
+    right: 50,
   },
   languageButton: {
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#ffffffe6",
@@ -641,7 +483,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-
-
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
