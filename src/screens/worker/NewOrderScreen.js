@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState } from "react";
+=======
+import React, { useState, useEffect } from "react";
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 import {
   View,
   Text,
@@ -7,6 +11,7 @@ import {
   TextInput,
   StyleSheet,
   Dimensions,
+<<<<<<< HEAD
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
@@ -25,19 +30,40 @@ import {
   Croissant,
   Sandwich,
   CakeSlice,
+=======
+  Alert,
+} from "react-native";
+import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
+import {
+  Coffee,
+  Sun,
+  Snowflake,
+  Utensils,
+  Clock,
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   Plus,
   Minus,
   X,
   Send,
+<<<<<<< HEAD
   GlassWater,
 } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
+=======
+} from "lucide-react-native";
+
+const { width } = Dimensions.get("window");
+const BASE_URL = "http://api-coffee.m-zedan.com/api"; // استبدل بالـ base_url الصحيح
+const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYXBpLWNvZmZlZS5tLXplZGFuLmNvbS9hcGkvYWRtaW4vYXV0aC9sb2dpbiIsImlhdCI6MTc1MzAxOTAwNSwiZXhwIjoxNzUzMDIyNjA1LCJuYmYiOjE3NTMwMTkwMDUsImp0aSI6IllvQ2wxeUVKc2g5QThjVFEiLCJzdWIiOiIxNSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjcifQ.lAPTE4qIaeM9Eco0XGWusb5JY1zxC-mFvV4dSYRVyvA";
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 
 const NewOrderScreen = () => {
   const { t } = useTranslation();
   const { currentLanguage } = useSelector((state) => state.language);
   const isRTL = currentLanguage === "ar";
+<<<<<<< HEAD
   const [customerName, setCustomerName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("hot");
   const [cart, setCart] = useState([]);
@@ -147,6 +173,46 @@ const NewOrderScreen = () => {
     { key: "food", label: t("worker.foodItems"), icon: "Utensils" },
   ];
 
+=======
+  const [customerName, setCustomerName] = useState("تجريبي1");
+  const [cart, setCart] = useState([]);
+  const [products, setProducts] = useState({ hot: [], cold: [], food: [] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/admin/products`, {
+        headers: {
+          Authorization: `Bearer ${token}`, 
+          "Content-Type": "application/json",
+        },
+      });
+      const result = await response.json();
+      console.log("API Response:", result);
+      if (result.data && Array.isArray(result.data)) {
+        const categorizedProducts = {
+          hot: result.data.filter((p) => p.category_id === "2"), // "بن" كـ hot
+          cold: result.data.filter((p) => p.category_id === "1"), // "مشروبات" كـ cold
+          food: [], // يمكن تكون فاضية حاليًا، لو فيه تصنيف جديد زوده
+        };
+        setProducts(categorizedProducts);
+      } else {
+        throw new Error("No products data found");
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      Alert.alert(t("worker.error"), t("worker.fetchProductsFailed"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   const addToCart = (product) => {
     const existingItem = cart.find((item) => item.id === product.id);
     if (existingItem) {
@@ -170,13 +236,21 @@ const NewOrderScreen = () => {
   };
 
   const getTotal = () => {
+<<<<<<< HEAD
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+=======
+    return cart.reduce(
+      (total, item) => total + parseFloat(item.price) * item.quantity,
+      0
+    );
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   };
 
   const getCartItemCount = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
+<<<<<<< HEAD
   const getTranslatedProductName = (productName) => {
     const translations = {
       Espresso: t("worker.espresso"),
@@ -253,6 +327,83 @@ const NewOrderScreen = () => {
         return <Send size={size} color={color} />;
       default:
         return null;
+=======
+  const getTranslatedProductName = (productName) => productName || "";
+  const getTranslatedProductDescription = () => "";
+  const getTranslatedPopularity = () => "";
+
+  const renderIcon = (iconName, size = 24, color = "#4e342e") => {
+    const icons = {
+      Sun: <Sun size={size} color={color} />,
+      Snowflake: <Snowflake size={size} color={color} />,
+      Utensils: <Utensils size={size} color={color} />,
+      Coffee: <Coffee size={size} color={color} />,
+      Plus: <Plus size={size} color={color} />,
+      Minus: <Minus size={size} color={color} />,
+      X: <X size={size} color={color} />,
+      Send: <Send size={size} color={color} />,
+    };
+    return icons[iconName] || <Coffee size={size} color={color} />;
+  };
+
+  const placeOrder = async () => {
+    console.log("Place Order button pressed!"); // للتحقق من الضغط
+    if (!customerName || cart.length === 0) {
+      // Alert.alert(t("worker.error"), t("worker.enterCustomerAndItems"));
+      console.log("worker.error");
+      console.log(customerName + cart.length);
+
+      return;
+    }
+
+    const orderData = {
+      customer_id: 10,
+      branch_id: 1,
+      user_id: 15,
+      total_amount: getTotal().toFixed(2),
+      payment_method: "cash",
+      items: cart.map((item) => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: parseFloat(item.price),
+        subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+      })),
+    };
+
+    // عرض الـ orderData قبل الطلب
+    console.log("Order Data being sent:", orderData);
+
+    try {
+      const response = await fetch(`${BASE_URL}/admin/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("API Response Status:", response.status);
+      console.log("API Response:", result);
+
+      if (response.ok) {
+        Alert.alert(t("worker.success"), t("worker.orderPlaced"));
+        setCart([]);
+        setCustomerName("");
+      } else {
+        const errorMessage =
+          result.message || `Error ${response.status}: Failed to place order`;
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error placing order:", error.message);
+      Alert.alert(t("worker.error"), error.message); // عرض الخطأ للمستخدم
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     }
   };
 
@@ -300,6 +451,7 @@ const NewOrderScreen = () => {
       color: "#4e342e",
       textAlign: isRTL ? "right" : "left",
     },
+<<<<<<< HEAD
     categoryButton: {
       marginRight: isRTL ? 0 : 16,
       marginLeft: isRTL ? 16 : 0,
@@ -319,15 +471,22 @@ const NewOrderScreen = () => {
       textAlign: "center",
     },
     categoryLabelSelected: { color: "#fff" },
+=======
+    categorySection: { marginBottom: 16 },
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     productsContainer: {
       flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
       gap: 12,
     },
+<<<<<<< HEAD
     productsContainerRTL: {
       flexDirection: "row-reverse",
     },
+=======
+    productsContainerRTL: { flexDirection: "row-reverse" },
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     productCard: {
       backgroundColor: "#fffaf5",
       borderRadius: 16,
@@ -361,6 +520,7 @@ const NewOrderScreen = () => {
       lineHeight: 20,
       textAlign: isRTL ? "right" : "left",
     },
+<<<<<<< HEAD
     productPopularity: {
       flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
@@ -376,6 +536,8 @@ const NewOrderScreen = () => {
       marginRight: isRTL ? 3 : 0,
       fontWeight: "600",
     },
+=======
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     productDescription: {
       color: "#6b4f42",
       marginBottom: 12,
@@ -559,8 +721,16 @@ const NewOrderScreen = () => {
       marginRight: isRTL ? 0 : 8,
       marginLeft: isRTL ? 8 : 0,
     },
+<<<<<<< HEAD
     productsContainerRTL: {
       flexDirection: "row-reverse",
+=======
+    productsContainerRTL: { flexDirection: "row-reverse" },
+    loadingText: {
+      textAlign: "center",
+      fontSize: 16,
+      color: "#4e342e",
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     },
   });
 
@@ -591,6 +761,7 @@ const NewOrderScreen = () => {
         </View>
 
         <View style={styles.section}>
+<<<<<<< HEAD
           <Text style={styles.sectionTitle}>{t("worker.selectCategory")}</Text>
           <ScrollView
             horizontal
@@ -687,6 +858,187 @@ const NewOrderScreen = () => {
               </View>
             ))}
           </View>
+=======
+          {loading ? (
+            <Text style={styles.loadingText}>{t("worker.loading")}</Text>
+          ) : (
+            <>
+              {products.hot.length > 0 && (
+                <View style={styles.categorySection}>
+                  <Text style={styles.sectionTitle}>
+                    {t("worker.hotDrinks")}
+                  </Text>
+                  <View
+                    style={[
+                      styles.productsContainer,
+                      isRTL && styles.productsContainerRTL,
+                    ]}
+                  >
+                    {products.hot.map((product) => (
+                      <View key={product.id} style={styles.productCard}>
+                        <View style={styles.productHeader}>
+                          <View style={styles.productImageContainer}>
+                            {renderIcon("Coffee", 28, "#4e342e")}
+                          </View>
+                        </View>
+
+                        <View style={styles.productContent}>
+                          <Text style={styles.productName}>
+                            {getTranslatedProductName(product.name)}
+                          </Text>
+                          <Text style={styles.productDescription}>
+                            {getTranslatedProductDescription()}
+                          </Text>
+
+                          <View style={styles.productFooter}>
+                            <View style={styles.productInfo}>
+                              <Text style={styles.productPrice}>
+                                ${parseFloat(product.price).toFixed(2)}
+                              </Text>
+                              <View style={styles.productTimeContainer}>
+                                {renderIcon("Clock", 12, "#6b4f42")}
+                                <Text style={styles.productTime}>2 min</Text>
+                              </View>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.addButton}
+                              onPress={() =>
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: parseFloat(product.price),
+                                })
+                              }
+                            >
+                              {renderIcon("Plus", 18, "#fff")}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {products.cold.length > 0 && (
+                <View style={styles.categorySection}>
+                  <Text style={styles.sectionTitle}>
+                    {t("worker.coldDrinks")}
+                  </Text>
+                  <View
+                    style={[
+                      styles.productsContainer,
+                      isRTL && styles.productsContainerRTL,
+                    ]}
+                  >
+                    {products.cold.map((product) => (
+                      <View key={product.id} style={styles.productCard}>
+                        <View style={styles.productHeader}>
+                          <View style={styles.productImageContainer}>
+                            {renderIcon("Snowflake", 28, "#4e342e")}
+                          </View>
+                        </View>
+
+                        <View style={styles.productContent}>
+                          <Text style={styles.productName}>
+                            {getTranslatedProductName(product.name)}
+                          </Text>
+                          <Text style={styles.productDescription}>
+                            {getTranslatedProductDescription()}
+                          </Text>
+
+                          <View style={styles.productFooter}>
+                            <View style={styles.productInfo}>
+                              <Text style={styles.productPrice}>
+                                ${parseFloat(product.price).toFixed(2)}
+                              </Text>
+                              <View style={styles.productTimeContainer}>
+                                {renderIcon("Clock", 12, "#6b4f42")}
+                                <Text style={styles.productTime}>2 min</Text>
+                              </View>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.addButton}
+                              onPress={() =>
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: parseFloat(product.price),
+                                })
+                              }
+                            >
+                              {renderIcon("Plus", 18, "#fff")}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {products.food.length > 0 && (
+                <View style={styles.categorySection}>
+                  <Text style={styles.sectionTitle}>
+                    {t("worker.foodItems")}
+                  </Text>
+                  <View
+                    style={[
+                      styles.productsContainer,
+                      isRTL && styles.productsContainerRTL,
+                    ]}
+                  >
+                    {products.food.map((product) => (
+                      <View key={product.id} style={styles.productCard}>
+                        <View style={styles.productHeader}>
+                          <View style={styles.productImageContainer}>
+                            {renderIcon("Utensils", 28, "#4e342e")}
+                          </View>
+                        </View>
+
+                        <View style={styles.productContent}>
+                          <Text style={styles.productName}>
+                            {getTranslatedProductName(product.name)}
+                          </Text>
+                          <Text style={styles.productDescription}>
+                            {getTranslatedProductDescription()}
+                          </Text>
+
+                          <View style={styles.productFooter}>
+                            <View style={styles.productInfo}>
+                              <Text style={styles.productPrice}>
+                                ${parseFloat(product.price).toFixed(2)}
+                              </Text>
+                              <View style={styles.productTimeContainer}>
+                                {renderIcon("Clock", 12, "#6b4f42")}
+                                <Text style={styles.productTime}>2 min</Text>
+                              </View>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.addButton}
+                              onPress={() =>
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: parseFloat(product.price),
+                                })
+                              }
+                            >
+                              {renderIcon("Plus", 18, "#fff")}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
         </View>
 
         {cart.length > 0 && (
@@ -757,9 +1109,13 @@ const NewOrderScreen = () => {
                 </View>
                 <TouchableOpacity
                   style={styles.placeOrderButton}
+<<<<<<< HEAD
                   onPress={() => {
                     // Handle order placement
                   }}
+=======
+                  onPress={placeOrder}
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
                 >
                   <View style={styles.placeOrderButtonContent}>
                     {renderIcon("Send", 20, "#fff")}
