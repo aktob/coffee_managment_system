@@ -17,15 +17,13 @@ import {
   Snowflake,
   Utensils,
   Clock,
-  Plus,
-  Minus,
   X,
   Send,
 } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
-const BASE_URL = "http://api-coffee.m-zedan.com/api"; // استبدل بالـ base_url الصحيح
-const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vYXBpLWNvZmZlZS5tLXplZGFuLmNvbS9hcGkvYWRtaW4vYXV0aC9sb2dpbiIsImlhdCI6MTc1MzAxOTAwNSwiZXhwIjoxNzUzMDIyNjA1LCJuYmYiOjE3NTMwMTkwMDUsImp0aSI6IllvQ2wxeUVKc2g5QThjVFEiLCJzdWIiOiIxNSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjcifQ.lAPTE4qIaeM9Eco0XGWusb5JY1zxC-mFvV4dSYRVyvA";
+const BASE_URL = "http://api-coffee.m-zedan.com/api";
 
 const NewOrderScreen = () => {
   const { t } = useTranslation();
@@ -35,6 +33,7 @@ const NewOrderScreen = () => {
   const [cart, setCart] = useState([]);
   const [products, setProducts] = useState({ hot: [], cold: [], food: [] });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -42,28 +41,42 @@ const NewOrderScreen = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
+    setError(null);
     try {
+      const token = await AsyncStorage.getItem("authToken");
+      console.log("Retrieved Token:", token);
+      if (!token) {
+        throw new Error(t("worker.noToken"));
+      }
+
       const response = await fetch(`${BASE_URL}/admin/products`, {
         headers: {
-          Authorization: `Bearer ${token}`, 
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
       const result = await response.json();
-      console.log("API Response:", result);
+      console.log("Products API Response:", result);
+
       if (result.data && Array.isArray(result.data)) {
         const categorizedProducts = {
-          hot: result.data.filter((p) => p.category_id === "2"), // "بن" كـ hot
-          cold: result.data.filter((p) => p.category_id === "1"), // "مشروبات" كـ cold
-          food: [], // يمكن تكون فاضية حاليًا، لو فيه تصنيف جديد زوده
+          hot: result.data.filter((p) => p.category_id === "2"),
+          cold: result.data.filter((p) => p.category_id === "1"),
+          food: [],
         };
         setProducts(categorizedProducts);
       } else {
         throw new Error("No products data found");
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
-      Alert.alert(t("worker.error"), t("worker.fetchProductsFailed"));
+      console.error("Error fetching products:", error.message);
+      setError(error.message);
+      Alert.alert(t("worker.error"), error.message || t("worker.fetchProductsFailed"));
     } finally {
       setLoading(false);
     }
@@ -72,9 +85,9 @@ const NewOrderScreen = () => {
   const addToCart = (product) => {
     const existingItem = cart.find((item) => item.id === product.id);
     if (existingItem) {
-      updateQuantity(product.id, existingItem.quantity + 1);
+      updateGrams(product.id, existingItem.grams + 100); // زيادة 100 جرام كافتراضي
     } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
+      setCart([...cart, { ...product, grams: 100 }]); // افتراضي 100 جرام
     }
   };
 
@@ -82,24 +95,25 @@ const NewOrderScreen = () => {
     setCart(cart.filter((item) => item.id !== productId));
   };
 
-  const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity < 1) return;
+  const updateGrams = (productId, newGrams) => {
+    if (newGrams < 1) return; // الكمية لازم تكون أكبر من 0
     setCart(
       cart.map((item) =>
-        item.id === productId ? { ...item, quantity: newQuantity } : item
+        item.id === productId ? { ...item, grams: newGrams } : item
       )
     );
   };
 
+  const getItemPrice = (item) => {
+    return (item.grams / 1000) * parseFloat(item.price); // السعر بناءً على الجرامات
+  };
+
   const getTotal = () => {
-    return cart.reduce(
-      (total, item) => total + parseFloat(item.price) * item.quantity,
-      0
-    );
+    return cart.reduce((total, item) => total + getItemPrice(item), 0);
   };
 
   const getCartItemCount = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
+    return cart.length; // عدد العناصر في السلة
   };
 
   const getTranslatedProductName = (productName) => productName || "";
@@ -112,8 +126,6 @@ const NewOrderScreen = () => {
       Snowflake: <Snowflake size={size} color={color} />,
       Utensils: <Utensils size={size} color={color} />,
       Coffee: <Coffee size={size} color={color} />,
-      Plus: <Plus size={size} color={color} />,
-      Minus: <Minus size={size} color={color} />,
       X: <X size={size} color={color} />,
       Send: <Send size={size} color={color} />,
     };
@@ -121,12 +133,10 @@ const NewOrderScreen = () => {
   };
 
   const placeOrder = async () => {
-    console.log("Place Order button pressed!"); // للتحقق من الضغط
+    console.log("Place Order button pressed!");
     if (!customerName || cart.length === 0) {
-      // Alert.alert(t("worker.error"), t("worker.enterCustomerAndItems"));
-      console.log("worker.error");
-      console.log(customerName + cart.length);
-
+      Alert.alert(t("worker.error"), t("worker.enterCustomerAndItems"));
+      console.log("Validation Error:", { customerName, cartLength: cart.length });
       return;
     }
 
@@ -138,16 +148,21 @@ const NewOrderScreen = () => {
       payment_method: "cash",
       items: cart.map((item) => ({
         product_id: item.id,
-        quantity: item.quantity,
+        quantity: item.grams / 1000, // تحويل الجرامات إلى كيلو
         unit_price: parseFloat(item.price),
-        subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+        subtotal: getItemPrice(item).toFixed(2),
       })),
     };
 
-    // عرض الـ orderData قبل الطلب
     console.log("Order Data being sent:", orderData);
 
     try {
+      const token = await AsyncStorage.getItem("authToken");
+      console.log("Retrieved Token for Order:", token);
+      if (!token) {
+        throw new Error(t("worker.noToken"));
+      }
+
       const response = await fetch(`${BASE_URL}/admin/orders`, {
         method: "POST",
         headers: {
@@ -157,26 +172,20 @@ const NewOrderScreen = () => {
         body: JSON.stringify(orderData),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
       const result = await response.json();
+      console.log("Order API Response:", result);
       console.log("API Response Status:", response.status);
-      console.log("API Response:", result);
 
       if (response.ok) {
         Alert.alert(t("worker.success"), t("worker.orderPlaced"));
         setCart([]);
         setCustomerName("");
       } else {
-        const errorMessage =
-          result.message || `Error ${response.status}: Failed to place order`;
-        throw new Error(errorMessage);
+        throw new Error(result.message || `Error ${response.status}: Failed to place order`);
       }
     } catch (error) {
       console.error("Error placing order:", error.message);
-      Alert.alert(t("worker.error"), error.message); // عرض الخطأ للمستخدم
+      Alert.alert(t("worker.error"), error.message || t("worker.orderFailed"));
     }
   };
 
@@ -366,22 +375,15 @@ const NewOrderScreen = () => {
       flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
     },
-    qtyButton: {
+    gramsInput: {
       backgroundColor: "#d7bfa9",
-      width: 40,
+      width: 80,
       height: 40,
-      borderRadius: 20,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    qtyPlusButton: { backgroundColor: "#6d4c41" },
-    cartItemQty: {
-      marginHorizontal: 16,
-      fontSize: 18,
-      fontWeight: "600",
-      color: "#4e342e",
-      minWidth: 30,
+      borderRadius: 10,
       textAlign: "center",
+      fontSize: 16,
+      color: "#4e342e",
+      marginHorizontal: 8,
     },
     removeButton: {
       marginLeft: isRTL ? 0 : 12,
@@ -454,6 +456,12 @@ const NewOrderScreen = () => {
       fontSize: 16,
       color: "#4e342e",
     },
+    errorText: {
+      textAlign: "center",
+      fontSize: 16,
+      color: "#dc2626",
+      marginVertical: 16,
+    },
   });
 
   return (
@@ -485,6 +493,8 @@ const NewOrderScreen = () => {
         <View style={styles.section}>
           {loading ? (
             <Text style={styles.loadingText}>{t("worker.loading")}</Text>
+          ) : error ? (
+            <Text style={styles.errorText}>{error}</Text>
           ) : (
             <>
               {products.hot.length > 0 && (
@@ -517,7 +527,7 @@ const NewOrderScreen = () => {
                           <View style={styles.productFooter}>
                             <View style={styles.productInfo}>
                               <Text style={styles.productPrice}>
-                                ${parseFloat(product.price).toFixed(2)}
+                                ${parseFloat(product.price).toFixed(2)}/kg
                               </Text>
                               <View style={styles.productTimeContainer}>
                                 {renderIcon("Clock", 12, "#6b4f42")}
@@ -575,7 +585,7 @@ const NewOrderScreen = () => {
                           <View style={styles.productFooter}>
                             <View style={styles.productInfo}>
                               <Text style={styles.productPrice}>
-                                ${parseFloat(product.price).toFixed(2)}
+                                ${parseFloat(product.price).toFixed(2)}/kg
                               </Text>
                               <View style={styles.productTimeContainer}>
                                 {renderIcon("Clock", 12, "#6b4f42")}
@@ -633,7 +643,7 @@ const NewOrderScreen = () => {
                           <View style={styles.productFooter}>
                             <View style={styles.productInfo}>
                               <Text style={styles.productPrice}>
-                                ${parseFloat(product.price).toFixed(2)}
+                                ${parseFloat(product.price).toFixed(2)}/kg
                               </Text>
                               <View style={styles.productTimeContainer}>
                                 {renderIcon("Clock", 12, "#6b4f42")}
@@ -684,27 +694,21 @@ const NewOrderScreen = () => {
                         {getTranslatedProductName(item.name)}
                       </Text>
                       <Text style={styles.cartItemPrice}>
-                        ${item.price.toFixed(2)} {t("worker.each")}
+                        ${parseFloat(item.price).toFixed(2)}/kg
                       </Text>
                     </View>
                     <View style={styles.cartItemActions}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          updateQuantity(item.id, item.quantity - 1)
-                        }
-                        style={styles.qtyButton}
-                      >
-                        {renderIcon("Minus", 16, "#4e342e")}
-                      </TouchableOpacity>
-                      <Text style={styles.cartItemQty}>{item.quantity}</Text>
-                      <TouchableOpacity
-                        onPress={() =>
-                          updateQuantity(item.id, item.quantity + 1)
-                        }
-                        style={[styles.qtyButton, styles.qtyPlusButton]}
-                      >
-                        {renderIcon("Plus", 16, "#fff")}
-                      </TouchableOpacity>
+                      <TextInput
+                        style={styles.gramsInput}
+                        value={item.grams.toString()}
+                        onChangeText={(text) => {
+                          const grams = parseInt(text) || 0;
+                          updateGrams(item.id, grams);
+                        }}
+                        keyboardType="numeric"
+                        placeholder="g"
+                        placeholderTextColor="#9CA3AF"
+                      />
                       <TouchableOpacity
                         onPress={() => removeFromCart(item.id)}
                         style={styles.removeButton}
@@ -715,7 +719,7 @@ const NewOrderScreen = () => {
                   </View>
                   <View style={styles.cartItemTotalContainer}>
                     <Text style={styles.cartItemTotal}>
-                      ${(item.price * item.quantity).toFixed(2)}
+                      ${getItemPrice(item).toFixed(2)}
                     </Text>
                   </View>
                 </View>

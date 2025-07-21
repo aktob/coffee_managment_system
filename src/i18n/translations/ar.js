@@ -587,6 +587,7 @@ export default {
     preparationTime: "وقت التحضير",
 
     // Categories
+    peansTypes:"أنواع البن",
     hotDrinks: "مشروبات ساخنة",
     coldDrinks: "مشروبات باردة",
     foodItems: "طعام ووجبات خفيفة",

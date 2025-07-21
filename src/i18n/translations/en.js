@@ -581,6 +581,7 @@ export default {
     preparationTime: "Preparation Time",
 
     // Categories
+    peansTypes:"peans Types",
     hotDrinks: "Hot Drinks",
     coldDrinks: "Cold Drinks",
     foodItems: "Food Items",
