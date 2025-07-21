@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "coffe-app",
+    "slug": "coffe-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#8B4513",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.coffe.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#8B4513"
+      },
+      "package": "com.coffe.app"
+    },
+    "platforms": ["ios", "android"]
+  }
+}
