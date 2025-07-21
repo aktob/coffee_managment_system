@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
@@ -21,7 +22,8 @@ import {
   ArrowLeft,
   ArrowRight,
 } from "lucide-react-native";
-
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 const { width } = Dimensions.get("window");
 
 const AnalyticsScreen = () => {
@@ -204,6 +206,44 @@ const AnalyticsScreen = () => {
     }
   };
 
+
+
+// New i added
+const handleExportPDF = async () => {
+  try {
+    const htmlContent = `
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            body { font-family: Arial; padding: 24px; }
+            h1 { color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <h1>Analytics Report</h1>
+          <table>
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>Users</td><td>120</td></tr>
+            <tr><td>Promotions</td><td>45</td></tr>
+            <tr><td>Scans</td><td>310</td></tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const { uri } = await Print.printToFileAsync({ html: htmlContent });
+    await Sharing.shareAsync(uri);
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+  }
+};
+// New i added
+
+
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -358,6 +398,7 @@ const AnalyticsScreen = () => {
     },
   });
 
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -455,6 +496,11 @@ const AnalyticsScreen = () => {
                 marginVertical: 8,
                 borderRadius: 16,
               }}
+              getDotProps={(value, index) => ({
+              r: "6", // كبر الدائرة
+              strokeWidth: "2",
+              stroke: "#6d4c41",
+            })}
             />
           </View>
         </View>
@@ -497,16 +543,14 @@ const AnalyticsScreen = () => {
           </View>
         </View>
 
+
         {/* Export Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t("admin.exportData")}</Text>
           <View style={styles.exportContainer}>
             <TouchableOpacity
               style={styles.exportButton}
-              onPress={() => {
-                // Handle export PDF
-                console.log("Export PDF");
-              }}
+              onPress={handleExportPDF}
             >
               {renderIcon("FileText", 20, "#fff")}
               <Text style={styles.exportButtonText}>
@@ -514,18 +558,6 @@ const AnalyticsScreen = () => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.exportButton}
-              onPress={() => {
-                // Handle export CSV
-                console.log("Export CSV");
-              }}
-            >
-              {renderIcon("Download", 20, "#fff")}
-              <Text style={styles.exportButtonText}>
-                {t("admin.exportCSV")}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

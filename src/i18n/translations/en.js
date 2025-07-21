@@ -530,6 +530,8 @@ export default {
     orderDetails: "Order Details",
     specialInstructions: "Special Instructions",
     actionButtons: "Action Buttons",
+<<<<<<< HEAD
+=======
     filterOptions: "filter section",
     filterByPayment: "Filter by Payment Method",
     allPayments:"all payments",
@@ -539,6 +541,7 @@ export default {
     sortby: "sortby",
     sortNewest: "Sort newets",
     sortOldest: "Sort oldest",
+>>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 
     // OrdersScreen specific translations
     manageAndTrackOrders: "Manage and track all orders",

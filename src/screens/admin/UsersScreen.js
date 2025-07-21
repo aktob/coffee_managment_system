@@ -26,6 +26,21 @@ import {
   ChevronLeft,
 } from "lucide-react-native";
 
+
+// const showDatePicker = () => {
+//   DateTimePickerAndroid.open({
+//     value: new Date(),
+//     onChange: (event, selectedDate) => {
+//       const date = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+//       setUserJoinDate(date);
+//     },
+//     mode: 'date',
+//     is24Hour: true,
+//   });
+// };
+
+
+
 const { width } = Dimensions.get("window");
 
 const UsersScreen = () => {
@@ -36,8 +51,26 @@ const UsersScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
 
+
+
+  // New i added
+const [userName, setUserName] = useState("");
+const [userEmail, setUserEmail] = useState("");
+const [userStatus, setUserStatus] = useState("active");
+const [userRole, setUserRole] = useState("worker");
+const [userJoinDate, setUserJoinDate] = useState("");
+const [userEditId, setUserEditId] = useState(null);
+const [isEditingUser, setIsEditingUser] = useState(false);
+const [formVisible, setFormVisible] = useState(false);
+// Errors
+const [userNameError, setUserNameError] = useState("");
+const [userEmailError, setUserEmailError] = useState("");
+  // New i added
+
+
+
   // Mock users data
-  const users = [
+  const [users, setUsers] = useState([
     {
       id: 1,
       name: "John Doe",
@@ -78,9 +111,9 @@ const UsersScreen = () => {
       status: "active",
       joinDate: "2023-07-12",
     },
-  ];
+  ]);
 
-  const roles = ["all", "admin", "supervisor", "worker"];
+  const roles = ["admin", "supervisor", "worker"];
 
   const filteredUsers = users.filter(
     (user) =>
@@ -125,12 +158,19 @@ const UsersScreen = () => {
   };
 
   const handleEditUser = (user) => {
-    Alert.alert(
-      t("admin.editUserDetails"),
-      `${t("admin.editUserDetails")} ${user.name}`
-    );
+      setUserName(user.name);
+      setUserEmail(user.email);
+      setUserRole(user.role);
+      setUserStatus(user.status);
+      setUserJoinDate(user.joinDate);
+      setUserEditId(user.id);
+      setIsEditingUser(true);
+      setFormVisible(true);
   };
 
+
+
+  // New i added
   const handleDeleteUser = (user) => {
     Alert.alert(t("admin.deleteUser"), t("admin.deleteUserConfirm"), [
       {
@@ -141,16 +181,80 @@ const UsersScreen = () => {
         text: t("common.delete"),
         style: "destructive",
         onPress: () => {
-          console.log("Delete user:", user.id);
-          Alert.alert(t("common.success"), t("admin.userDeleted"));
-        },
+          setUsers((prevUsers) =>
+            prevUsers.filter((p) => p.id !== user.id)
+          );
+        }
       },
     ]);
   };
+  // New i added
 
+
+
+  // New i added
   const handleAddUser = () => {
-    Alert.alert(t("admin.addNewUser"), t("admin.addNewUser"));
+      // Reset Errors
+  setUserNameError("");
+  setUserEmailError("");
+
+  let hasError = false;
+
+  if (!userName.trim()) {
+    setUserNameError("Name is required");
+    hasError = true;
+  }
+
+  if (!userEmail.trim() || !userEmail.includes("@")) {
+    setUserEmailError("Valid email is required");
+    hasError = true;
+  }
+
+  if (hasError) return;
+
+  const updatedUser = {
+    id: isEditingUser ? userEditId : Date.now(),
+    name: userName,
+    email: userEmail,
+    role: userRole,
+    status: userStatus,
+    joinDate: userJoinDate || new Date().toISOString().split("T")[0],
   };
+
+  if (isEditingUser) {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userEditId ? updatedUser : u))
+    );
+    Alert.alert("User updated", `${userName} updated successfully!`);
+  } else {
+    setUsers((prev) => [
+      ...prev,
+      { ...updatedUser, id: Date.now() },
+    ]);
+    Alert.alert("User added", `${userName} added successfully!`);
+  }
+
+  clearUserForm();
+  };
+  // New i added
+
+
+  // New i added
+const clearUserForm = () => {
+  setUserName("");
+  setUserEmail("");
+  setUserRole("worker");
+  setUserStatus("active");
+  setUserJoinDate("");
+  setUserEditId(null);
+  setIsEditingUser(false);
+  setUserNameError("");
+  setUserEmailError("");
+  setFormVisible(false);
+};
+  // New i added
+
+
 
   const styles = StyleSheet.create({
     container: {
@@ -425,7 +529,19 @@ const UsersScreen = () => {
       color: "#6b4f42",
       textAlign: "center",
     },
+    inputField: {
+      backgroundColor: "#fff",
+      borderWidth: 1,
+      borderColor: "#ddd",
+      padding: 12,
+      borderRadius: 10,
+      fontSize: 16,
+      color: "#4e342e",
+      marginBottom: 12,
+    }
   });
+
+
 
   return (
     <View style={styles.container}>
@@ -488,7 +604,7 @@ const UsersScreen = () => {
         </View>
 
         {/* Add User Button */}
-        <TouchableOpacity style={styles.addButton} onPress={handleAddUser}>
+        <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
           {renderIcon("Plus", 20, "#fff")}
           <Text style={styles.addButtonText}>{t("admin.addNewUser")}</Text>
         </TouchableOpacity>
@@ -576,6 +692,154 @@ const UsersScreen = () => {
           )}
         </View>
       </ScrollView>
+
+
+
+  {/* New i added */}
+{formVisible && (
+  <View
+    style={{
+      backgroundColor: "#fff",
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 170,
+      elevation: 4,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }}
+  >
+    <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
+      {isEditingUser ? "Edit User" : "Add New User"}
+    </Text>
+
+    <TextInput
+      placeholder="Full Name"
+      value={userName}
+      onChangeText={(text) => {
+        setUserName(text);
+        if (text.trim()) setUserNameError("");
+      }}
+      style={styles.inputField}
+    />
+    {userNameError ? (
+      <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>
+        {userNameError}
+      </Text>
+    ) : null}
+
+    <TextInput
+      placeholder="Email"
+      value={userEmail}
+      keyboardType="email-address"
+      onChangeText={(text) => {
+        setUserEmail(text);
+        if (text.trim() && text.includes("@")) setUserEmailError("");
+      }}
+      style={styles.inputField}
+    />
+    {userEmailError ? (
+      <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>
+        {userEmailError}
+      </Text>
+    ) : null}
+
+    {/* <TextInput
+      placeholder="Role (admin/supervisor/worker)"
+      value={userRole}
+      onChangeText={(text) => setUserRole(text)}
+      style={styles.inputField}
+    /> */}
+<View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
+  {roles.map((role) => (
+    <TouchableOpacity
+      key={role}
+      onPress={() => setUserRole(role)}
+      style={{
+        backgroundColor: userRole === role ? "#007BFF" : "#ccc",
+        paddingVertical: 8,
+        borderRadius: 8,
+        marginRight: 8,
+        marginBottom: 8,
+        alignItems: "center",
+        justifyContent: "space-between",
+        flex: 1,
+      }}
+    >
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>{role}</Text>
+    </TouchableOpacity>
+  ))}
+</View>
+
+
+<View style={{ flexDirection: 'row', marginVertical: 10 }}>
+  <TouchableOpacity
+    onPress={() => setUserStatus('active')}
+    style={{
+      flex: 1,
+      padding: 12,
+      backgroundColor: userStatus === 'active' ? '#4CAF50' : '#ddd',
+      alignItems: 'center',
+      borderTopLeftRadius: 8,
+      borderBottomLeftRadius: 8,
+    }}
+  >
+    <Text style={{ color: userStatus === 'active' ? '#fff' : '#000' }}>Active</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() => setUserStatus('inactive')}
+    style={{
+      flex: 1,
+      padding: 12,
+      backgroundColor: userStatus === 'inactive' ? '#F44336' : '#ddd',
+      alignItems: 'center',
+      borderTopRightRadius: 8,
+      borderBottomRightRadius: 8,
+    }}
+  >
+    <Text style={{ color: userStatus === 'inactive' ? '#fff' : '#000' }}>Inactive</Text>
+  </TouchableOpacity>
+</View>
+
+ <TextInput
+      placeholder="Join Date (YYYY-MM-DD)"
+      value={userJoinDate}
+      onChangeText={(text) => setUserJoinDate(text)}
+      style={styles.inputField}
+    />
+
+
+
+
+    
+    
+
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
+      <TouchableOpacity
+        onPress={handleAddUser }            
+        style={[styles.addButton, { flex: 1, marginRight: 6 }]}
+      >
+        <Text style={styles.addButtonText}>Save</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          setFormVisible(false);
+          clearUserForm();
+        }}
+        style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginLeft: 6 }]}
+      >
+        <Text style={styles.addButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+  {/* New i added */}
+
+
+
     </View>
   );
 };

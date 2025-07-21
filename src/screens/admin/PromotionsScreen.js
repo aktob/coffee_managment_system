@@ -40,8 +40,29 @@ const PromotionsScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
+
+
+  // New i added
+const [promoName, setPromoName] = useState("");
+const [promoDescription, setPromoDescription] = useState("");
+const [promoDiscountType, setPromoDiscountType] = useState("percentage");
+const [promoDiscountValue, setPromoDiscountValue] = useState("");
+const [promoStartDate, setPromoStartDate] = useState("");
+const [promoEndDate, setPromoEndDate] = useState("");
+const [promoActive, setPromoActive] = useState(true);
+const [promoEditId, setPromoEditId] = useState(null);
+const [isEditingPromo, setIsEditingPromo] = useState(false);
+const [formVisible, setFormVisible] = useState(false);
+// Errors
+const [promoNameError, setPromoNameError] = useState("");
+const [promoDescriptionError, setPromoDescriptionError] = useState("");
+const [promoDiscountValueError, setPromoDiscountValueError] = useState("");
+  // New i added
+
+
+
   // Mock promotions data
-  const promotions = [
+  const [promotions, setPromotions] = useState([
     {
       id: 1,
       name: "Morning Coffee Deal",
@@ -97,7 +118,8 @@ const PromotionsScreen = () => {
       active: false,
       usageCount: 34,
     },
-  ];
+  ]);
+
 
   const filteredPromotions = promotions.filter(
     (promo) =>
@@ -174,13 +196,78 @@ const PromotionsScreen = () => {
     }
   };
 
+
+  // New i added
   const handleEditPromotion = (promotion) => {
-    Alert.alert(
-      t("admin.editPromotion"),
-      `${t("admin.editPromotion")} ${promotion.name}`
-    );
+    setPromoName(promotion.name);
+    setPromoDescription(promotion.description);
+    setPromoDiscountType(promotion.discountType);
+    setPromoDiscountValue(promotion.discountValue.toString());
+    setPromoStartDate(promotion.startDate);
+    setPromoEndDate(promotion.endDate);
+    setPromoActive(promotion.active);
+    setPromoEditId(promotion.id);
+    setIsEditingPromo(true);
+    setFormVisible(true);
+  };
+  // New i added
+
+
+
+  // New i added
+const handleAddPromotion = () => {
+  const oldPromo = promotions.find(p => p.id === promoEditId);
+  
+  const updatedPromotion = {
+    id: promoEditId,
+    name: promoName,
+    description: promoDescription,
+    discountType: promoDiscountType,
+    discountValue: parseFloat(promoDiscountValue),
+    startDate: promoStartDate,
+    endDate: promoEndDate,
+    active: promoActive,
+    usageCount: isEditingPromo ? oldPromo?.usageCount || 0 : 0,
   };
 
+  if (isEditingPromo) {
+    setPromotions((prev) =>
+      prev.map((p) => (p.id === promoEditId ? updatedPromotion : p))
+    );
+        Alert.alert(t("admin.editProduct"), t("Promotion updated successfully!"));
+    
+  } else {
+    setPromotions((prev) => [
+      ...prev,
+      { ...updatedPromotion, id: Date.now(), usageCount: 0 },
+    ]);
+    Alert.alert(t("admin.addProduct"), t("Promotion added successfully!"));
+  }
+
+  clearPromoForm();
+};
+  // New i added
+
+  
+  // New i added
+const clearPromoForm = () => {
+  setPromoName("");
+  setPromoDescription("");
+  setPromoDiscountType("percentage");
+  setPromoDiscountValue("");
+  setPromoStartDate("");
+  setPromoEndDate("");
+  setPromoActive(true);
+  setPromoEditId(null);
+  setIsEditingPromo(false);
+  setFormVisible(false);
+  // setPromoNameError("");
+};
+  // New i added
+
+
+
+  // New i added
   const handleDeletePromotion = (promotion) => {
     Alert.alert(t("admin.deletePromotion"), t("admin.deletePromotionConfirm"), [
       {
@@ -191,21 +278,28 @@ const PromotionsScreen = () => {
         text: t("common.delete"),
         style: "destructive",
         onPress: () => {
-          console.log("Delete promotion:", promotion.id);
-          Alert.alert(t("common.success"), t("admin.promotionDeleted"));
+          setPromotions((prevPromotions) =>
+            prevPromotions.filter((p) => p.id !== promotion.id)
+          );
         },
       },
     ]);
   };
+  // New i added
 
-  const handleAddPromotion = () => {
-    Alert.alert(t("admin.addNewPromotion"), t("admin.addNewPromotion"));
-  };
 
+
+  // New i added
   const handleToggleActive = (promotion) => {
-    console.log("Toggle promotion:", promotion.id, !promotion.active);
-    Alert.alert(t("common.success"), t("admin.promotionUpdated"));
+    setPromotions((prevPromotions) =>
+      prevPromotions.map((p) =>
+        p.id === promotion.id ? { ...p, active: !p.active } : p
+      )
+    );
   };
+  // New i added
+
+
 
   const styles = StyleSheet.create({
     container: {
@@ -524,7 +618,20 @@ const PromotionsScreen = () => {
       color: "#6b4f42",
       textAlign: "center",
     },
+    inputField: {
+      backgroundColor: "#fff",
+      borderWidth: 1,
+      borderColor: "#ddd",
+      padding: 12,
+      borderRadius: 10,
+      fontSize: 16,
+      color: "#4e342e",
+      marginBottom: 12,
+}
+
   });
+
+
 
   return (
     <View style={styles.container}>
@@ -588,7 +695,7 @@ const PromotionsScreen = () => {
         </View>
 
         {/* Add Promotion Button */}
-        <TouchableOpacity style={styles.addButton} onPress={handleAddPromotion}>
+        <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
           {renderIcon("Plus", 20, "#fff")}
           <Text style={styles.addButtonText}>{t("admin.addNewPromotion")}</Text>
         </TouchableOpacity>
@@ -725,6 +832,106 @@ const PromotionsScreen = () => {
           )}
         </View>
       </ScrollView>
+
+
+
+
+  {/* New i added */}
+{formVisible && (
+  <View
+    style={{
+      backgroundColor: "#fff",
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 170,
+      elevation: 4,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }}
+  >
+    <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
+      {isEditingPromo ? "Edit Promotion" : "Add New Promotion"}
+    </Text>
+
+    <TextInput
+      placeholder="Promotion Name"
+      value={promoName}
+      onChangeText={(text) => {
+        setPromoName(text);
+        if (text.trim()) setPromoNameError("");
+      }}
+      style={styles.inputField}
+    />
+    {promoNameError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{promoNameError}</Text> : null}
+
+    <TextInput
+      placeholder="Description"
+      value={promoDescription}
+      onChangeText={(text) => {
+        setPromoDescription(text);
+        if (text.trim()) setPromoDescriptionError("");
+      }}
+      style={styles.inputField}
+    />
+    {promoDescriptionError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{promoDescriptionError}</Text> : null}
+
+    {/* <TextInput
+      placeholder="Discount Type (percentage/fixed/bundle)"
+      value={promoDiscountType}
+      onChangeText={(text) => setPromoDiscountType(text)}
+      style={styles.inputField}
+    /> */}
+
+    <TextInput
+      placeholder="Discount Value %"
+      value={promoDiscountValue}
+      keyboardType="numeric"
+      onChangeText={(text) => {
+        setPromoDiscountValue(text);
+        if (!isNaN(text)) setPromoDiscountValueError("");
+      }}
+      style={styles.inputField}
+    />
+    {promoDiscountValueError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{promoDiscountValueError}</Text> : null}
+
+    <TextInput
+      placeholder="Start Date (YYYY-MM-DD)"
+      value={promoStartDate}
+      onChangeText={setPromoStartDate}
+      style={styles.inputField}
+    />
+
+    <TextInput
+      placeholder="End Date (YYYY-MM-DD)"
+      value={promoEndDate}
+      onChangeText={setPromoEndDate}
+      style={styles.inputField}
+    />
+
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
+      <TouchableOpacity
+        onPress={handleAddPromotion}
+        style={[styles.addButton, { flex: 1, marginRight: 6 }]}
+      >
+        <Text style={styles.addButtonText}>Save</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => setFormVisible(false)}
+        style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginLeft: 6 }]}
+      >
+        <Text style={styles.addButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+  {/* New i added */}
+
+
+
+
     </View>
   );
 };
