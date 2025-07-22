@@ -29,7 +29,7 @@ const NewOrderScreen = () => {
   const { t } = useTranslation();
   const { currentLanguage } = useSelector((state) => state.language);
   const isRTL = currentLanguage === "ar";
-  const [customerName, setCustomerName] = useState("تجريبي1");
+  const [customerName, setCustomerName] = useState("");
   const [cart, setCart] = useState([]);
   const [products, setProducts] = useState({ hot: [], cold: [], food: [] });
   const [loading, setLoading] = useState(true);
