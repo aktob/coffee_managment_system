@@ -60,5 +60,6 @@
     "prettier": "^3.1.1",
     "react-native-svg-transformer": "^1.5.1"
   },
-  "private": true
+  "private": true,
+  "proxy": "http://api-coffee.m-zedan.com"
 }
