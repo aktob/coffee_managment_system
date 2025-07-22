@@ -45,10 +45,6 @@ const ProductsScreen = () => {
 
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   // New i added
 const [formVisible, setFormVisible] = useState(false);
 const [name, setName] = useState("");
@@ -58,7 +54,6 @@ const [description, setDescription] = useState("");
 const [stock, setStock] = useState("");
 const [isEditing, setIsEditing] = useState(false);
 const [editProductId, setEditProductId] = useState(null);
-<<<<<<< HEAD
 
 const [nameError, setNameError] = useState("");
 const [priceError, setPriceError] = useState("");
@@ -69,11 +64,6 @@ const [stockError, setStockError] = useState("");
 
 
 
-=======
-  // New i added
-
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   // Mock product data
   const [products, setProducts] = useState([
     {
@@ -203,58 +193,6 @@ const [stockError, setStockError] = useState("");
   };
 
 
-<<<<<<< HEAD
-  // New i added
-  // const handleAddProduct = () => {
-  //   if (!name || !price) {
-  //     Alert.alert("Error", "Please enter name and price");
-  //     return;
-  //   }
-    
-  // if (isEditing) {
-  //   const updatedProducts = products.map((item) =>
-  //     item.id === editProductId
-  //       ? {
-  //           ...item,
-  //           name,
-  //           category,
-  //           price: parseFloat(price),
-  //           description,
-  //           stock: parseInt(stock),
-  //         }
-  //       : item
-  //   );
-  //   setProducts(updatedProducts);
-  //   Alert.alert(t("admin.editProduct"), t("admin.editProductMessage"));
-  // } else {
-  //   const newProduct = {
-  //     id: products.length + 1,
-  //     name,
-  //     category,
-  //     price: parseFloat(price),
-  //     description,
-  //     stock: parseInt(stock),
-  //     available: true,
-  //     sales: 0,
-  //     rating: 0,
-  //     image: "☕",
-  //   };
-  //   setProducts([...products, newProduct]);
-  //   Alert.alert(t("admin.addProduct"), t("admin.addProductMessage"));
-  // }
-  
-  // reset form
-    // setFormVisible(false); // يخفي الفورم
-  // يفضي القيم بعد الإضافة
-  //   setName("");
-  //   setPrice("");
-  //   setCategory("hot");
-  //   setDescription("");
-  //   setStock("");
-  //   setIsEditing(false);
-  //   setEditProductId(null);
-  // };
-  // New i added
 
 
 
@@ -282,18 +220,7 @@ const handleAddProduct = () => {
   }
 
   if (hasError) return;
-
   // لو مفيش Errors نكمل
-=======
-
-  // New i added
-  const handleAddProduct = () => {
-    if (!name || !price) {
-      Alert.alert("Error", "Please enter name and price");
-      return;
-    }
-     
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 
   if (isEditing) {
     const updatedProducts = products.map((item) =>
@@ -309,17 +236,10 @@ const handleAddProduct = () => {
         : item
     );
     setProducts(updatedProducts);
-<<<<<<< HEAD
     Alert.alert(t("admin.editProduct"), t("Product updated successfully!"));
   } else {
     const newProduct = {
       id: Date.now(),
-=======
-    Alert.alert(t("admin.editProduct"), t("admin.editProductMessage"));
-  } else {
-    const newProduct = {
-      id: products.length + 1,
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
       name,
       category,
       price: parseFloat(price),
@@ -334,7 +254,6 @@ const handleAddProduct = () => {
     Alert.alert(t("admin.addProduct"), t("admin.addProductMessage"));
   }
 
-<<<<<<< HEAD
   // reset form
   setFormVisible(false);
   setName("");
@@ -360,43 +279,10 @@ const handleAddProduct = () => {
     setFormVisible(true);
     setIsEditing(true);
     setEditProductId(product.id);
-=======
-
-
-    
-  // reset form
-    setFormVisible(false); // يخفي الفورم
-  // يفضي القيم بعد الإضافة
-    setName("");
-    setPrice("");
-    setCategory("hot");
-    setDescription("");
-    setStock("");
-    setIsEditing(false);
-    setEditProductId(null);
   };
   // New i added
 
 
-  // New i added
-  const handleEditProduct = (product) => {
-    setName(product.name);
-  setCategory(product.category);
-  setPrice(product.price.toString());
-  setDescription(product.description);
-  setStock(product.stock.toString());
-  setFormVisible(true);
-  setIsEditing(true);
-  setEditProductId(product.id);
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
-  };
-  // New i added
-
-
-<<<<<<< HEAD
-
-=======
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   // New i added
   const handleDeleteProduct = (product) => {
     Alert.alert(t("admin.deleteProduct"), t("admin.deleteProductConfirm"), [
@@ -408,10 +294,6 @@ const handleAddProduct = () => {
         text: t("common.delete"),
         style: "destructive",
         onPress: () => {
-<<<<<<< HEAD
-=======
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
           setProducts((prevProducts) =>
             prevProducts.filter((p) => p.id !== product.id)
           );
@@ -425,27 +307,16 @@ const handleAddProduct = () => {
 
   // New i added
   const handleToggleAvailability = (product) => {
-<<<<<<< HEAD
     setProducts((prevProducts) =>
       prevProducts.map((p) =>
         p.id === product.id ? { ...p, available: !p.available } : p
       )
     );
-=======
-    product.available = !product.available;
-    setProducts((prevProducts) =>
-      prevProducts.map((p) => (p.id === product.id ? product : p))
-    );  
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   };
   // New i added
 
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   const renderProductCard = (product) => {
     if (viewMode === "grid") {
       return (
@@ -961,10 +832,6 @@ const handleAddProduct = () => {
       color: "#6b4f42",
       textAlign: "center",
     },
-<<<<<<< HEAD
-=======
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
      inputField: {
   backgroundColor: "#fff",
   borderWidth: 1,
@@ -975,10 +842,6 @@ const handleAddProduct = () => {
   color: "#4e342e",
   marginBottom: 12,
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
   });
 
   return (
@@ -1088,13 +951,7 @@ const handleAddProduct = () => {
         </View>
 
         {/* Add Product Button */}
-<<<<<<< HEAD
         <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
-=======
-
-        <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
           {renderIcon("Plus", 22, "#fff")}
           <Text style={styles.addButtonText}>{t("admin.addNewProduct")}</Text>
         </TouchableOpacity>
@@ -1124,10 +981,6 @@ const handleAddProduct = () => {
 
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
  {/* New i added */}
 {formVisible && (
   <View
@@ -1150,7 +1003,6 @@ const handleAddProduct = () => {
     <TextInput
       placeholder="Product Name"
       value={name}
-<<<<<<< HEAD
       // onChangeText={setName}
       onChangeText={(text) => {
         setName(text);
@@ -1159,17 +1011,11 @@ const handleAddProduct = () => {
       style={styles.inputField}
     />
 {nameError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{nameError}</Text> : null}
-=======
-      onChangeText={setName}
-      style={styles.inputField}
-    />
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 
 
     <TextInput
       placeholder="Price"
       value={price}
-<<<<<<< HEAD
       // onChangeText={setPrice}
       onChangeText={(text) => {
       setPrice(text);
@@ -1193,29 +1039,13 @@ const handleAddProduct = () => {
     {stockError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{stockError}</Text> : null}
 
 
-=======
-      onChangeText={setPrice}
-      keyboardType="numeric"
-      style={styles.inputField}
-    />
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
     <TextInput
       placeholder="Description"
       value={description}
       onChangeText={setDescription}
       style={styles.inputField}
     />
-<<<<<<< HEAD
   
-=======
-    <TextInput
-      placeholder="Stock"
-      value={stock}
-      onChangeText={setStock}
-      keyboardType="numeric"
-      style={styles.inputField}
-    />
->>>>>>> 0b17bb2a4cee837c8c038f3d4dc354ab1221e9ef
 
     <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
       <TouchableOpacity
