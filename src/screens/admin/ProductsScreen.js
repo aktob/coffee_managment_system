@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Dimensions,
   Alert,
   Switch,
+  ActivityIndicator,
+  Image,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
@@ -31,8 +33,10 @@ import {
   Grid,
   List,
 } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
+const BASE_URL = "http://api-coffee.m-zedan.com/api";
 
 const ProductsScreen = () => {
   const { t } = useTranslation();
@@ -41,100 +45,114 @@ const ProductsScreen = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [viewMode, setViewMode] = useState("grid"); // grid or list
+  const [viewMode, setViewMode] = useState("grid");
+  const [formVisible, setFormVisible] = useState(false);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("hot");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [stock, setStock] = useState("");
+  const [barcode, setBarcode] = useState("");
+  const [acceptFloat, setAcceptFloat] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editProductId, setEditProductId] = useState(null);
+  const [nameError, setNameError] = useState("");
+  const [priceError, setPriceError] = useState("");
+  const [stockError, setStockError] = useState("");
+  const [barcodeError, setBarcodeError] = useState("");
+  const [products, setProducts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  const categories = [
+    { id: "all", name: t("admin.allProducts") || "جميع المنتجات" },
+    { id: "1", name: t("admin.hotDrinks") || "مشروبات ساخنة" },
+    { id: "2", name: t("admin.beans") || "بن" },
+    { id: "3", name: t("admin.food") || "طعام" },
+    { id: "4", name: t("admin.snacks") || "وجبات خفيفة" },
+  ];
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        console.log("Retrieved Token for Fetch Products:", token);
+        if (!token) {
+          throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+        }
 
-  // New i added
-const [formVisible, setFormVisible] = useState(false);
-const [name, setName] = useState("");
-const [category, setCategory] = useState("hot");
-const [price, setPrice] = useState("");
-const [description, setDescription] = useState("");
-const [stock, setStock] = useState("");
-const [isEditing, setIsEditing] = useState(false);
-const [editProductId, setEditProductId] = useState(null);
+        const response = await fetch(`${BASE_URL}/admin/products?page=${currentPage}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
 
-const [nameError, setNameError] = useState("");
-const [priceError, setPriceError] = useState("");
-const [stockError, setStockError] = useState("");
-  // New i added
+        console.log("Fetch Products API Response Status:", response.status);
 
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          if (response.status === 401) {
+            throw new Error(t("admin.unauthorized") || "التوكين غير صالح أو منتهي");
+          }
+          throw new Error(
+            errorData.message || t("admin.fetchProductsError") || `فشل في جلب المنتجات (Status: ${response.status})`
+          );
+        }
 
+        const data = await response.json();
+        console.log("Fetch Products API Response:", data);
 
+        const mappedProducts = data.data.map((product) => ({
+          id: product.id || Date.now(),
+          name: product.name || "منتج بدون اسم",
+          category_id: product.category_id || "1",
+          category: product.category?.name || (product.category_id === "1" ? "مشروب" : product.category_id === "2" ? "بن" : "طعام"),
+          price: parseFloat(product.price) || 0,
+          description: product.description || product.name || "لا يوجد وصف",
+          stock: product.stock || "0",
+          barcode: product.barcode || "",
+          accept_float: product.accept_float || false,
+          active: product.active || false,
+          rating: product.rating || 0,
+          sales: product.sales || 0,
+          image: product.image_url || (product.category_id === "1" || product.category_id === "2" ? "☕" : "🥐"),
+        }));
 
+        setProducts(mappedProducts);
+        setTotalPages(data.last_page || 1);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching products:", err.message);
+        setError(err.message);
+        Alert.alert(t("common.error") || "خطأ", err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Mock product data
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Espresso",
-      category: "hot",
-      price: 3.99,
-      description: "Strong and pure coffee shot",
-      available: true,
-      stock: 45,
-      rating: 4.8,
-      sales: 156,
-      image: "☕",
-    },
-    {
-      id: 2,
-      name: "Cappuccino",
-      category: "hot",
-      price: 4.99,
-      description: "Espresso with steamed milk foam",
-      available: true,
-      stock: 32,
-      rating: 4.9,
-      sales: 203,
-      image: "☕",
-    },
-    {
-      id: 3,
-      name: "Iced Latte",
-      category: "cold",
-      price: 4.49,
-      description: "Espresso with cold milk and ice",
-      available: false,
-      stock: 0,
-      rating: 4.6,
-      sales: 89,
-      image: "🧊",
-    },
-    {
-      id: 4,
-      name: "Croissant",
-      category: "food",
-      price: 2.99,
-      description: "Buttery French pastry",
-      available: true,
-      stock: 28,
-      rating: 4.7,
-      sales: 134,
-      image: "🥐",
-    },
-    {
-      id: 5,
-      name: "Chocolate Cake",
-      category: "snacks",
-      price: 3.49,
-      description: "Rich chocolate layer cake",
-      available: true,
-      stock: 15,
-      rating: 4.5,
-      sales: 67,
-      image: "🍰",
-    },
-  ]);
-
-  const categories = ["all", "hot", "cold", "food", "snacks"];
+    fetchProducts();
+  }, [currentPage, t]);
 
   const filteredProducts = products.filter(
     (product) =>
-      (selectedCategory === "all" || product.category === selectedCategory) &&
+      (selectedCategory === "all" || product.category_id === selectedCategory) &&
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getCategoryIcon = (categoryId) => {
+    if (categoryId === "1" || categoryId === "2") {
+      return "Coffee";
+    } else if (categoryId === "3" || categoryId === "4") {
+      return "Package";
+    }
+    return "Coffee";
+  };
 
   const renderIcon = (iconName, size = 24, color = "#4e342e") => {
     switch (iconName) {
@@ -177,242 +195,346 @@ const [stockError, setStockError] = useState("");
     }
   };
 
-  const getCategoryIcon = (category) => {
-    switch (category) {
-      case "hot":
-        return "Coffee";
-      case "cold":
-        return "Coffee";
-      case "food":
-        return "Package";
-      case "snacks":
-        return "Package";
-      default:
-        return "Coffee";
+  async function handleAddProduct() {
+    console.log("Add/Edit Product button pressed!");
+    let hasError = false;
+    setNameError("");
+    setPriceError("");
+    setStockError("");
+    setBarcodeError("");
+
+    if (!name.trim()) {
+      setNameError(t("admin.nameRequired") || "الاسم مطلوب");
+      hasError = true;
     }
-  };
+    if (!price || isNaN(price) || parseFloat(price) <= 0) {
+      setPriceError(t("admin.priceInvalid") || "السعر يجب أن يكون رقمًا أكبر من 0");
+      hasError = true;
+    }
+    if (!stock || isNaN(stock) || parseFloat(stock) < 0) {
+      setStockError(t("admin.stockInvalid") || "المخزون يجب أن يكون رقمًا غير سالب");
+      hasError = true;
+    }
+    if (!barcode.trim()) {
+      setBarcodeError(t("admin.barcodeRequired") || "الباركود مطلوب");
+      hasError = true;
+    }
 
+    if (hasError) {
+      console.log("Validation Error:", { name, price, stock, barcode });
+      return;
+    }
 
-  // New i added
-  // const handleAddProduct = () => {
-  //   if (!name || !price) {
-  //     Alert.alert("Error", "Please enter name and price");
-  //     return;
-  //   }
-    
-  // if (isEditing) {
-  //   const updatedProducts = products.map((item) =>
-  //     item.id === editProductId
-  //       ? {
-  //           ...item,
-  //           name,
-  //           category,
-  //           price: parseFloat(price),
-  //           description,
-  //           stock: parseInt(stock),
-  //         }
-  //       : item
-  //   );
-  //   setProducts(updatedProducts);
-  //   Alert.alert(t("admin.editProduct"), t("admin.editProductMessage"));
-  // } else {
-  //   const newProduct = {
-  //     id: products.length + 1,
-  //     name,
-  //     category,
-  //     price: parseFloat(price),
-  //     description,
-  //     stock: parseInt(stock),
-  //     available: true,
-  //     sales: 0,
-  //     rating: 0,
-  //     image: "☕",
-  //   };
-  //   setProducts([...products, newProduct]);
-  //   Alert.alert(t("admin.addProduct"), t("admin.addProductMessage"));
-  // }
-  
-  // reset form
-    // setFormVisible(false); // يخفي الفورم
-  // يفضي القيم بعد الإضافة
-  //   setName("");
-  //   setPrice("");
-  //   setCategory("hot");
-  //   setDescription("");
-  //   setStock("");
-  //   setIsEditing(false);
-  //   setEditProductId(null);
-  // };
-  // New i added
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      console.log("Retrieved Token for Add/Edit Product:", token);
+      if (!token) {
+        throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+      }
 
+      const categoryMap = {
+        hot: "1",
+        cold: "2",
+        food: "3",
+        snacks: "4",
+        بن: "2",
+      };
+      const categoryId = categoryMap[category.toLowerCase()] || "1";
 
+      const productData = {
+        name: name.trim(),
+        description: description.trim() || name.trim(),
+        price: parseFloat(price).toFixed(2),
+        category_id: categoryId,
+        branch_id: null,
+        stock: parseFloat(stock).toFixed(2),
+        type: "unit",
+        barcode: barcode.trim(),
+        accept_float: acceptFloat,
+      };
 
-  // New i added
-const handleAddProduct = () => {
-  let hasError = false;
+      console.log("Product Data being sent:", productData);
 
-  // Reset errors
-  setNameError("");
-  setPriceError("");
-  setStockError("");
+      const endpoint = isEditing
+        ? `${BASE_URL}/admin/products/${editProductId}`
+        : `${BASE_URL}/admin/products`;
 
-  // Validation
-  if (!name.trim()) {
-    setNameError("Name is required");
-    hasError = true;
-  }
-  if (!price || isNaN(price) || parseFloat(price) <= 0) {
-    setPriceError("Valid price is required");
-    hasError = true;
-  }
-  if (!stock || isNaN(stock) || parseInt(stock) < 0) {
-    setStockError("Valid stock is required");
-    hasError = true;
-  }
+      const response = await fetch(endpoint, {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(productData),
+      });
 
-  if (hasError) return;
+      console.log("Add/Edit Product API Response Status:", response.status);
+      const result = await response.json();
+      console.log("Add/Edit Product API Response:", result);
 
-  // لو مفيش Errors نكمل
+      if (!response.ok) {
+        if (response.status === 422) {
+          const errorDetails = result.errors
+            ? Object.entries(result.errors)
+                .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
+                .join("; ")
+            : result.message || "البيانات المرسلة غير صالحة";
+          throw new Error(`خطأ 422: ${errorDetails}`);
+        }
+        throw new Error(
+          result.message || t("admin.saveProductError") || `فشل في حفظ المنتج (Status: ${response.status})`
+        );
+      }
 
-  if (isEditing) {
-    const updatedProducts = products.map((item) =>
-      item.id === editProductId
-        ? {
-            ...item,
-            name,
-            category,
+      if (isEditing) {
+        setProducts(
+          products.map((item) =>
+            item.id === editProductId
+              ? {
+                  ...item,
+                  name: name.trim(),
+                  category_id: categoryId,
+                  category: categoryId === "1" ? "مشروب" : categoryId === "2" ? "بن" : category,
+                  price: parseFloat(price),
+                  description: description.trim() || name.trim(),
+                  stock: parseFloat(stock).toFixed(2),
+                  barcode: barcode.trim(),
+                  accept_float: acceptFloat,
+                  active: parseFloat(stock) > 0,
+                }
+              : item
+          )
+        );
+        Alert.alert(
+          t("admin.editProduct") || "تعديل المنتج",
+          t("admin.productUpdated") || "تم تعديل المنتج بنجاح!"
+        );
+      } else {
+        setProducts([
+          ...products,
+          {
+            id: result.id || Date.now(),
+            name: name.trim(),
+            category_id: categoryId,
+            category: categoryId === "1" ? "مشروب" : categoryId === "2" ? "بن" : category,
             price: parseFloat(price),
-            description,
-            stock: parseInt(stock),
-          }
-        : item
-    );
-    setProducts(updatedProducts);
-    Alert.alert(t("admin.editProduct"), t("Product updated successfully!"));
-  } else {
-    const newProduct = {
-      id: Date.now(),
-      name,
-      category,
-      price: parseFloat(price),
-      description,
-      stock: parseInt(stock),
-      available: true,
-      sales: 0,
-      rating: 0,
-      image: "☕",
-    };
-    setProducts([...products, newProduct]);
-    Alert.alert(t("admin.addProduct"), t("admin.addProductMessage"));
+            description: description.trim() || name.trim(),
+            stock: parseFloat(stock).toFixed(2),
+            barcode: barcode.trim(),
+            accept_float: acceptFloat,
+            active: parseFloat(stock) > 0,
+            sales: 0,
+            rating: 0,
+            image: categoryId === "1" || categoryId === "2" ? "☕" : "🥐",
+          },
+        ]);
+        Alert.alert(
+          t("admin.addProduct") || "إضافة منتج",
+          t("admin.addProductMessage") || "تم إضافة المنتج بنجاح!"
+        );
+      }
+
+      setFormVisible(false);
+      setName("");
+      setPrice("");
+      setCategory("hot");
+      setDescription("");
+      setStock("");
+      setBarcode("");
+      setAcceptFloat(true);
+      setIsEditing(false);
+      setEditProductId(null);
+    } catch (err) {
+      console.error("Error adding/editing product:", err.message);
+      Alert.alert(
+        t("common.error") || "خطأ",
+        err.message || t("admin.saveProductError") || "فشل في حفظ المنتج"
+      );
+    }
   }
 
-  // reset form
-  setFormVisible(false);
-  setName("");
-  setPrice("");
-  setCategory("hot");
-  setDescription("");
-  setStock("");
-  setIsEditing(false);
-  setEditProductId(null);
-};
-  // New i added
-
-
-
-
-  // New i added
   const handleEditProduct = (product) => {
+    console.log("Edit Product button pressed for:", product.id);
     setName(product.name);
-    setCategory(product.category);
+    setCategory(product.category_id === "1" ? "hot" : product.category_id === "2" ? "بن" : product.category);
     setPrice(product.price.toString());
     setDescription(product.description);
     setStock(product.stock.toString());
+    setBarcode(product.barcode);
+    setAcceptFloat(product.accept_float);
     setFormVisible(true);
     setIsEditing(true);
     setEditProductId(product.id);
   };
-  // New i added
 
-
-  // New i added
-  const handleDeleteProduct = (product) => {
-    Alert.alert(t("admin.deleteProduct"), t("admin.deleteProductConfirm"), [
-      {
-        text: t("common.cancel"),
-        style: "cancel",
-      },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: () => {
-          setProducts((prevProducts) =>
-            prevProducts.filter((p) => p.id !== product.id)
-          );
+  const handleDeleteProduct = async (product) => {
+    console.log("Delete Product button pressed for:", product.id);
+    Alert.alert(
+      t("admin.deleteProduct") || "حذف المنتج",
+      t("admin.deleteProductConfirm") || "هل أنت متأكد من حذف المنتج؟",
+      [
+        {
+          text: t("common.cancel") || "إلغاء",
+          style: "cancel",
         },
-      },
-    ]);
-  };
-  // New i added
+        {
+          text: t("common.delete") || "حذف",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("authToken");
+              console.log("Retrieved Token for Delete Product:", token);
+              if (!token) {
+                throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+              }
 
+              const response = await fetch(`${BASE_URL}/admin/products/${product.id}`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+              });
 
+              console.log("Delete Product API Response Status:", response.status);
+              const result = await response.json().catch(() => ({}));
+              console.log("Delete Product API Response:", result);
 
-  // New i added
-  const handleToggleAvailability = (product) => {
-    setProducts((prevProducts) =>
-      prevProducts.map((p) =>
-        p.id === product.id ? { ...p, available: !p.available } : p
-      )
+              if (!response.ok) {
+                throw new Error(
+                  result.message || t("admin.deleteProductError") || `فشل في حذف المنتج (Status: ${response.status})`
+                );
+              }
+
+              setProducts(products.filter((p) => p.id !== product.id));
+              Alert.alert(
+                t("admin.deleteProduct") || "حذف المنتج",
+                t("admin.deleteProductSuccess") || "تم حذف المنتج بنجاح"
+              );
+            } catch (err) {
+              console.error("Error deleting product:", err.message);
+              Alert.alert(t("common.error") || "خطأ", err.message || t("admin.deleteProductError"));
+            }
+          },
+        },
+      ]
     );
   };
-  // New i added
 
+  const handleToggleAvailability = async (product) => {
+    console.log("Toggle Availability button pressed for:", product.id);
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      console.log("Retrieved Token for Toggle Availability:", token);
+      if (!token) {
+        throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+      }
 
+      const newStock = parseFloat(product.stock) > 0 ? "0.00" : "1.00";
+      const response = await fetch(`${BASE_URL}/admin/products/${product.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          stock: newStock,
+        }),
+      });
 
-  const renderProductCard = (product) => {
-    if (viewMode === "grid") {
-      return (
+      console.log("Toggle Availability API Response Status:", response.status);
+      const result = await response.json().catch(() => ({}));
+      console.log("Toggle Availability API Response:", result);
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || t("admin.updateStockError") || `فشل في تحديث المخزون (Status: ${response.status})`
+        );
+      }
+
+      setProducts(
+        products.map((p) =>
+          p.id === product.id ? { ...p, stock: newStock, active: parseFloat(newStock) > 0 } : p
+        )
+      );
+    } catch (err) {
+      console.error("Error toggling availability:", err.message);
+      Alert.alert(t("common.error") || "خطأ", err.message || t("admin.updateStockError"));
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+const renderProductCard = (product) => {
+  const isImageUrl = product.image?.startsWith("http");
+  const isAvailable = product.active && parseFloat(product.stock) > 0;
+
+  return (
+    <View>
+      {viewMode === "grid" ? (
         <TouchableOpacity key={product.id} style={styles.gridCard}>
           <View style={styles.gridCardHeader}>
-            <Text style={styles.productEmoji}>{product.image}</Text>
+            {isImageUrl ? (
+              <Image
+                source={{ uri: product.image }}
+                style={{ width: 32, height: 32 }}
+                resizeMode="contain"
+              />
+            ) : (
+              <Text style={styles.productEmoji}>
+                {product.category_id === "1" || product.category_id === "2" ? "☕" : "🥐"}
+              </Text>
+            )}
             <View style={styles.gridCardBadge}>
               <Text style={styles.gridCardBadgeText}>
-                {product.available
-                  ? t("admin.available")
-                  : t("admin.unavailable")}
+                {isAvailable
+                  ? t("admin.available") || "متوفر"
+                  : t("admin.unavailable") || "غير متوفر"}
               </Text>
             </View>
           </View>
-
           <View style={styles.gridCardContent}>
             <Text style={styles.gridCardName}>{product.name}</Text>
             <Text style={styles.gridCardDescription} numberOfLines={2}>
               {product.description}
             </Text>
-
             <View style={styles.gridCardPrice}>
               <Text style={styles.gridCardPriceText}>
-                ${product.price.toFixed(2)}
+                ${parseFloat(product.price).toFixed(2)}
               </Text>
             </View>
-
             <View style={styles.gridCardStats}>
               <View style={styles.gridCardStat}>
-                <Text style={styles.gridCardStatLabel}>{t("admin.stock")}</Text>
-                <Text style={styles.gridCardStatValue}>{product.stock}</Text>
+                <Text style={styles.gridCardStatLabel}>
+                  {t("admin.stock") || "المخزون"}
+                </Text>
+                <Text
+                  style={[
+                    styles.gridCardStatValue,
+                    parseFloat(product.stock) === 0 && styles.stockEmptyText,
+                  ]}
+                >
+                  {product.stock}
+                </Text>
               </View>
               <View style={styles.gridCardStat}>
                 <Text style={styles.gridCardStatLabel}>
-                  {t("admin.rating")}
+                  {t("admin.rating") || "التقييم"}
                 </Text>
                 <Text style={styles.gridCardStatValue}>{product.rating}</Text>
               </View>
             </View>
           </View>
-
           <View style={styles.gridCardActions}>
             <TouchableOpacity
-              style={styles.gridActionButton}
+              style={[styles.gridActionButton, styles.editGridButton]}
               onPress={() => handleEditProduct(product)}
             >
               {renderIcon("Edit", 16, "#fff")}
@@ -425,77 +547,94 @@ const handleAddProduct = () => {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
-      );
-    }
-
-    return (
-      <View key={product.id} style={styles.listCard}>
-        <View style={styles.listCardHeader}>
-          <View style={styles.listCardLeft}>
-            <Text style={styles.listProductEmoji}>{product.image}</Text>
-            <View style={styles.listCardInfo}>
-              <Text style={styles.listCardName}>{product.name}</Text>
-              <Text style={styles.listCardDescription}>
-                {product.description}
+      ) : (
+        <View key={product.id} style={styles.listCard}>
+          <View style={styles.listCardHeader}>
+            <View style={styles.listCardLeft}>
+              {isImageUrl ? (
+                <Image
+                  source={{ uri: product.image }}
+                  style={{ width: 40, height: 40, marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text style={styles.listProductEmoji}>
+                  {product.category_id === "1" || product.category_id === "2" ? "☕" : "🥐"}
+                </Text>
+              )}
+              <View style={styles.listCardInfo}>
+                <Text style={styles.listCardName}>{product.name}</Text>
+                <Text style={styles.listCardDescription}>{product.description}</Text>
+              </View>
+            </View>
+            <View style={styles.listCardRight}>
+              <View style={styles.listCardPrice}>
+                <Text style={styles.listCardPriceText}>
+                  ${parseFloat(product.price).toFixed(2)}
+                </Text>
+              </View>
+              <Switch
+                value={isAvailable}
+                onValueChange={() => handleToggleAvailability(product)}
+                trackColor={{ false: "#e0e0e0", true: "#4CAF50" }}
+                thumbColor={isAvailable ? "#fff" : "#f4f3f4"}
+              />
+            </View>
+          </View>
+          <View style={styles.listCardDetails}>
+            <View style={styles.listCardStat}>
+              <Text style={styles.listCardStatLabel}>
+                {t("admin.stock") || "المخزون"}
+              </Text>
+              <Text
+                style={[
+                  styles.listCardStatValue,
+                  parseFloat(product.stock) === 0 && styles.stockEmptyText,
+                ]}
+              >
+                {product.stock} {t("admin.units") || "وحدة"}
+              </Text>
+            </View>
+            <View style={styles.listCardStat}>
+              <Text style={styles.listCardStatLabel}>
+                {t("admin.rating") || "التقييم"}
+              </Text>
+              <Text style={styles.listCardStatValue}>{product.rating}/5.0</Text>
+            </View>
+            <View style={styles.listCardStat}>
+              <Text style={styles.listCardStatLabel}>
+                {t("admin.sales") || "المبيعات"}
+              </Text>
+              <Text style={styles.listCardStatValue}>
+                {product.sales} {t("admin.orders") || "طلب"}
               </Text>
             </View>
           </View>
-
-          <View style={styles.listCardRight}>
-            <View style={styles.listCardPrice}>
-              <Text style={styles.listCardPriceText}>
-                ${product.price.toFixed(2)}
+          <View style={styles.listCardActions}>
+            <TouchableOpacity
+              style={[styles.listActionButton, styles.editListButton]}
+              onPress={() => handleEditProduct(product)}
+            >
+              {renderIcon("Edit", 16, "#fff")}
+              <Text style={[styles.listActionText, styles.editListText]}>
+                {t("common.edit") || "تعديل"}
               </Text>
-            </View>
-            <Switch
-              value={product.available}
-              onValueChange={() => handleToggleAvailability(product)}
-              trackColor={{ false: "#e0e0e0", true: "#4CAF50" }}
-              thumbColor={product.available ? "#fff" : "#f4f3f4"}
-            />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.listActionButton, styles.deleteListButton]}
+              onPress={() => handleDeleteProduct(product)}
+            >
+              {renderIcon("Trash2", 16, "#fff")}
+              <Text style={[styles.listActionText, styles.deleteListText]}>
+                {t("common.delete") || "حذف"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.listCardDetails}>
-          <View style={styles.listCardStat}>
-            <Text style={styles.listCardStatLabel}>{t("admin.stock")}</Text>
-            <Text style={styles.listCardStatValue}>
-              {product.stock} {t("admin.units")}
-            </Text>
-          </View>
-          <View style={styles.listCardStat}>
-            <Text style={styles.listCardStatLabel}>{t("admin.rating")}</Text>
-            <Text style={styles.listCardStatValue}>{product.rating}/5.0</Text>
-          </View>
-          <View style={styles.listCardStat}>
-            <Text style={styles.listCardStatLabel}>{t("admin.sales")}</Text>
-            <Text style={styles.listCardStatValue}>
-              {product.sales} {t("admin.orders")}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.listCardActions}>
-          <TouchableOpacity
-            style={styles.listActionButton}
-            onPress={() => handleEditProduct(product)}
-          >
-            {renderIcon("Edit", 16, "#2196F3")}
-            <Text style={styles.listActionText}>{t("common.edit")}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.listActionButton, styles.deleteListButton]}
-            onPress={() => handleDeleteProduct(product)}
-          >
-            {renderIcon("Trash2", 16, "#f44336")}
-            <Text style={[styles.listActionText, styles.deleteListText]}>
-              {t("common.delete")}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+      )}
+    </View>
+  );
+};
 
   const styles = StyleSheet.create({
     container: {
@@ -751,20 +890,25 @@ const handleAddProduct = () => {
       fontWeight: "bold",
       color: "#4e342e",
     },
+    stockEmptyText: {
+      color: "#f44336",
+    },
     gridCardActions: {
       flexDirection: isRTL ? "row-reverse" : "row",
       gap: 8,
     },
     gridActionButton: {
       flex: 1,
-      backgroundColor: "#d7bfa9",
       paddingVertical: 8,
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
     },
+    editGridButton: {
+      backgroundColor: "#2196F3",
+    },
     deleteGridButton: {
-      backgroundColor: "#ffcdd2",
+      backgroundColor: "#f44336",
     },
     listCard: {
       backgroundColor: "#fffaf5",
@@ -859,20 +1003,24 @@ const handleAddProduct = () => {
       justifyContent: "center",
       paddingVertical: 12,
       borderRadius: 15,
-      backgroundColor: "#d7bfa9",
+    },
+    editListButton: {
+      backgroundColor: "#2196F3",
     },
     deleteListButton: {
-      backgroundColor: "#ffcdd2",
+      backgroundColor: "#f44336",
     },
     listActionText: {
       fontSize: 14,
       fontWeight: "600",
-      color: "#4e342e",
       marginRight: isRTL ? 0 : 6,
       marginLeft: isRTL ? 6 : 0,
     },
+    editListText: {
+      color: "#fff",
+    },
     deleteListText: {
-      color: "#c62828",
+      color: "#fff",
     },
     emptyState: {
       alignItems: "center",
@@ -884,36 +1032,58 @@ const handleAddProduct = () => {
       color: "#6b4f42",
       textAlign: "center",
     },
-     inputField: {
-  backgroundColor: "#fff",
-  borderWidth: 1,
-  borderColor: "#ddd",
-  padding: 12,
-  borderRadius: 10,
-  fontSize: 16,
-  color: "#4e342e",
-  marginBottom: 12,
-}
+    inputField: {
+      backgroundColor: "#fff",
+      borderWidth: 1,
+      borderColor: "#ddd",
+      padding: 12,
+      borderRadius: 10,
+      fontSize: 16,
+      color: "#4e342e",
+      marginBottom: 12,
+    },
+    paginationContainer: {
+      flexDirection: isRTL ? "row-reverse" : "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+    },
+    paginationButton: {
+      backgroundColor: "#8d6e63",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 12,
+      opacity: 1,
+    },
+    paginationButtonDisabled: {
+      opacity: 0.5,
+    },
+    pageInfo: {
+      fontSize: 16,
+      color: "#4e342e",
+      fontWeight: "500",
+    },
   });
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t("admin.productsManagement")}</Text>
-        <Text style={styles.headerSubtitle}>{t("admin.productsSubtitle")}</Text>
+        <Text style={styles.headerTitle}>
+          {t("admin.productsManagement") || "إدارة المنتجات"}
+        </Text>
+        <Text style={styles.headerSubtitle}>
+          {t("admin.productsSubtitle") || "إدارة قائمة المنتجات"}
+        </Text>
       </View>
 
-      <ScrollView
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Search Bar */}
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
             {renderIcon("Search", 20, "#6b4f42")}
             <TextInput
               style={styles.searchTextInput}
-              placeholder={t("admin.searchProducts")}
+              placeholder={t("admin.searchProducts") || "ابحث عن المنتجات"}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="#8d6e63"
@@ -921,96 +1091,90 @@ const handleAddProduct = () => {
           </View>
         </View>
 
-        {/* Filter Header with View Mode */}
         <View style={styles.filterContainer}>
           <View style={styles.filterHeader}>
             <Text style={styles.filterTitle}>
-              {t("admin.filterByCategory")}
+              {t("admin.filterByCategory") || "تصفية حسب الفئة"}
             </Text>
             <View style={styles.viewModeContainer}>
               <TouchableOpacity
                 style={[
                   styles.viewModeButton,
-                  viewMode === "grid"
-                    ? styles.viewModeButtonActive
-                    : styles.viewModeButtonInactive,
+                  viewMode === "grid" ? styles.viewModeButtonActive : styles.viewModeButtonInactive,
                 ]}
                 onPress={() => setViewMode("grid")}
               >
-                {renderIcon(
-                  "Grid",
-                  20,
-                  viewMode === "grid" ? "#fff" : "#7f8c8d"
-                )}
+                {renderIcon("Grid", 20, viewMode === "grid" ? "#fff" : "#7f8c8d")}
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.viewModeButton,
-                  viewMode === "list"
-                    ? styles.viewModeButtonActive
-                    : styles.viewModeButtonInactive,
+                  viewMode === "list" ? styles.viewModeButtonActive : styles.viewModeButtonInactive,
                 ]}
                 onPress={() => setViewMode("list")}
               >
-                {renderIcon(
-                  "List",
-                  20,
-                  viewMode === "list" ? "#fff" : "#7f8c8d"
-                )}
+                {renderIcon("List", 20, viewMode === "list" ? "#fff" : "#7f8c8d")}
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Category Filter */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterButtonsContainer}
           >
-            {categories.map((category) => (
+            {categories.map((cat) => (
               <TouchableOpacity
-                key={category}
+                key={cat.id}
                 style={[
                   styles.filterButton,
-                  selectedCategory === category
+                  selectedCategory === cat.id
                     ? styles.filterButtonActive
                     : styles.filterButtonInactive,
                 ]}
-                onPress={() => setSelectedCategory(category)}
+                onPress={() => setSelectedCategory(cat.id)}
               >
                 {renderIcon(
-                  getCategoryIcon(category),
+                  getCategoryIcon(cat.id),
                   18,
-                  selectedCategory === category ? "#fff" : "#2c3e50"
+                  selectedCategory === cat.id ? "#fff" : "#2c3e50"
                 )}
                 <Text
                   style={[
                     styles.filterButtonText,
-                    selectedCategory === category
+                    selectedCategory === cat.id
                       ? styles.filterButtonTextActive
                       : styles.filterButtonTextInactive,
                   ]}
                 >
-                  {category === "all" && t("admin.allProducts")}
-                  {category === "hot" && t("admin.hotDrinks")}
-                  {category === "cold" && t("admin.coldDrinks")}
-                  {category === "food" && t("admin.food")}
-                  {category === "snacks" && t("admin.snacks")}
+                  {cat.name}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
-        {/* Add Product Button */}
         <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
           {renderIcon("Plus", 22, "#fff")}
-          <Text style={styles.addButtonText}>{t("admin.addNewProduct")}</Text>
+          <Text style={styles.addButtonText}>
+            {t("admin.addNewProduct") || "إضافة منتج جديد"}
+          </Text>
         </TouchableOpacity>
 
-        {/* Products List */}
         <View style={styles.productsContainer}>
-          {filteredProducts.length > 0 ? (
+          {loading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color="#8d6e63" />
+              <Text style={styles.emptyStateText}>
+                {t("admin.loading") || "جاري التحميل..."}
+              </Text>
+            </View>
+          ) : error ? (
+            <View style={styles.emptyState}>
+              <Text style={{ fontSize: 64 }}>❌</Text>
+              <Text style={styles.emptyStateText}>{error}</Text>
+            </View>
+          ) : filteredProducts.length > 0 ? (
             viewMode === "grid" ? (
               <View style={styles.gridContainer}>
                 {filteredProducts.map(renderProductCard)}
@@ -1024,101 +1188,138 @@ const handleAddProduct = () => {
             <View style={styles.emptyState}>
               <Text style={{ fontSize: 64 }}>☕</Text>
               <Text style={styles.emptyStateText}>
-                {t("admin.noProductsFound")}
+                {t("admin.noProductsFound") || "لم يتم العثور على منتجات"}
               </Text>
             </View>
           )}
         </View>
+
+        {totalPages > 1 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                currentPage === 1 && styles.paginationButtonDisabled,
+              ]}
+              onPress={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              {renderIcon("ChevronLeft", 20, "#fff")}
+            </TouchableOpacity>
+            <Text style={styles.pageInfo}>
+              {t("admin.page") || "الصفحة"} {currentPage} {t("admin.of") || "من"} {totalPages}
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                currentPage === totalPages && styles.paginationButtonDisabled,
+              ]}
+              onPress={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              {renderIcon("ChevronRight", 20, "#fff")}
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
-
-
- {/* New i added */}
-{formVisible && (
-  <View
-    style={{
-      backgroundColor: "#fff",
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 170,
-      elevation: 4,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-    }}
-  >
-    <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
-      {t("admin.addNewProduct")}
-    </Text>
-
-    <TextInput
-      placeholder="Product Name"
-      value={name}
-      // onChangeText={setName}
-      onChangeText={(text) => {
-        setName(text);
-        if (text.trim()) setNameError("");
-        }}
-      style={styles.inputField}
-    />
-{nameError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{nameError}</Text> : null}
-
-
-    <TextInput
-      placeholder="Price"
-      value={price}
-      // onChangeText={setPrice}
-      onChangeText={(text) => {
-      setPrice(text);
-      if (!isNaN(text) && parseFloat(text) > 0) setPriceError("");
-      }}
-      keyboardType="numeric"
-      style={styles.inputField}
-    />
-    {priceError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{priceError}</Text> : null}
-
-    <TextInput
-      placeholder="Stock"
-      value={stock}
-      onChangeText={(text) => {
-        setStock(text);
-        if (!isNaN(text) && parseInt(text) > 0) setStockError("");
-      }}
-      keyboardType="numeric"
-      style={styles.inputField}
-    />
-    {stockError ? <Text style={{ color: 'red', marginBottom: 10, marginLeft: 10 }}>{stockError}</Text> : null}
-
-
-    <TextInput
-      placeholder="Description"
-      value={description}
-      onChangeText={setDescription}
-      style={styles.inputField}
-    />
-  
-
-    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
-      <TouchableOpacity
-        onPress={handleAddProduct}
-        style={[styles.addButton, { flex: 1, marginRight: 6 }]}
-      >
-        <Text style={styles.addButtonText}>Save</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => setFormVisible(false)}
-        style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginLeft: 6 }]}
-      >
-        <Text style={styles.addButtonText}>Cancel</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-)}
- {/* New i added */}
-
-
+      {formVisible && (
+        <View
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 170,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+          }}
+        >
+          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
+            {isEditing ? (t("admin.editProduct") || "تعديل المنتج") : (t("admin.addNewProduct") || "إضافة منتج جديد")}
+          </Text>
+          <TextInput
+            placeholder={t("admin.productName") || "اسم المنتج"}
+            value={name}
+            onChangeText={(text) => {
+              setName(text);
+              if (text.trim()) setNameError("");
+            }}
+            style={styles.inputField}
+          />
+          {nameError ? (
+            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+              {nameError}
+            </Text>
+          ) : null}
+          <TextInput
+            placeholder={t("admin.price") || "السعر"}
+            value={price}
+            onChangeText={(text) => {
+              setPrice(text);
+              if (!isNaN(text) && parseFloat(text) > 0) setPriceError("");
+            }}
+            keyboardType="numeric"
+            style={styles.inputField}
+          />
+          {priceError ? (
+            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+              {priceError}
+            </Text>
+          ) : null}
+          <TextInput
+            placeholder={t("admin.stock") || "المخزون"}
+            value={stock}
+            onChangeText={(text) => {
+              setStock(text);
+              if (!isNaN(text) && parseFloat(text) >= 0) setStockError("");
+            }}
+            keyboardType="numeric"
+            style={styles.inputField}
+          />
+          {stockError ? (
+            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+              {stockError}
+            </Text>
+          ) : null}
+          <TextInput
+            placeholder={t("admin.barcode") || "الباركود"}
+            value={barcode}
+            onChangeText={(text) => {
+              setBarcode(text);
+              if (text.trim()) setBarcodeError("");
+            }}
+            style={styles.inputField}
+          />
+          {barcodeError ? (
+            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+              {barcodeError}
+            </Text>
+          ) : null}
+          <TextInput
+            placeholder={t("admin.description") || "الوصف"}
+            value={description}
+            onChangeText={setDescription}
+            style={styles.inputField}
+          />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
+            <TouchableOpacity
+              onPress={handleAddProduct}
+              style={[styles.addButton, { flex: 1, marginRight: 6 }]}
+            >
+              <Text style={styles.addButtonText}>{t("common.save") || "حفظ"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setFormVisible(false)}
+              style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginLeft: 6 }]}
+            >
+              <Text style={styles.addButtonText}>{t("common.cancel") || "إلغاء"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
