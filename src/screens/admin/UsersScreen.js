@@ -41,7 +41,7 @@ const UsersScreen = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
   const [userStatus, setUserStatus] = useState("active");
-  const [userRole, setUserRole] = useState("بائع");
+  const [userRoleId, setUserRoleId] = useState("2"); // Default to "بائع"
   const [userBranchId, setUserBranchId] = useState("1");
   const [userJoinDate, setUserJoinDate] = useState("");
   const [userEditId, setUserEditId] = useState(null);
@@ -51,78 +51,105 @@ const UsersScreen = () => {
   const [userEmailError, setUserEmailError] = useState("");
   const [userPasswordError, setUserPasswordError] = useState("");
   const [userBranchIdError, setUserBranchIdError] = useState("");
+  const [userJoinDateError, setUserJoinDateError] = useState("");
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const roles = ["all", "بائع", "مدير"];
-  const branches = ["1", "2"];
+  const roles = [
+    { id: "1", name: "المدير" },
+    { id: "2", name: "بائع" },
+  ];
+  const branches = [
+    { id: "1", name: "فرع الأباصيري" },
+    { id: "3", name: "فرع الابراج" },
+  ];
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const token = await AsyncStorage.getItem("authToken");
-        if (!token) {
-          throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
-        }
-
-        const response = await fetch(`${BASE_URL}/admin/users?page=${currentPage}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          if (response.status === 401) {
-            throw new Error(t("admin.unauthorized") || "التوكين غير صالح أو منتهي");
-          }
-          throw new Error(
-            errorData.message || t("admin.fetchUsersError") || `فشل في جلب المستخدمين (Status: ${response.status})`
-          );
-        }
-
-        const data = await response.json();
-        const mappedUsers = data.data.map((user) => ({
-          id: user.id || Date.now(),
-          name: user.name || "مستخدم بدون اسم",
-          email: user.email || "لا يوجد بريد إلكتروني",
-          role: user.role || "بائع",
-          status: user.status || "active",
-          joinDate: user.created_at || new Date().toISOString().split("T")[0],
-          branch_id: user.branch_id || "1",
-        }));
-
-        setUsers(mappedUsers);
-        setTotalPages(data.last_page || 1);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching users:", err.message);
-        setError(err.message);
-        Alert.alert(t("common.error") || "خطأ", err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
   }, [currentPage, t]);
 
-  const filteredUsers = users.filter(
-    (user) =>
-      (selectedRole === "all" || user.role === selectedRole) &&
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      console.log("Retrieved Token for Users:", token);
+      if (!token) {
+        throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+      }
+
+      const response = await fetch(`${BASE_URL}/admin/users?page=${currentPage}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.log("Fetch Users Error Response:", errorData);
+        if (response.status === 401) {
+          throw new Error(t("admin.unauthorized") || "التوكين غير صالح أو منتهي");
+        }
+        throw new Error(
+          errorData.message || t("admin.fetchUsersError") || `فشل في جلب المستخدمين (Status: ${response.status})`
+        );
+      }
+
+      const data = await response.json();
+      console.log("Users API Response:", data);
+      console.log("API Response Status:", response.status);
+
+      const mappedUsers = data.data.map((user) => ({
+        id: user.id || Date.now(),
+        name: user.name || "مستخدم بدون اسم",
+        email: user.email || "لا يوجد بريد إلكتروني",
+        role_id: user.roles[0]?.id?.toString() || "2", // Convert to string for comparison
+        role_name: user.roles[0]?.display_name || "بائع",
+        status: user.blocked ? "inactive" : "active",
+        joinDate: user.created_at || new Date().toISOString().split("T")[0],
+        branch_ids: user.branches.map((b) => b.id.toString()),
+        branch_names: user.branches.map((b) => b.name),
+      }));
+
+      setUsers(mappedUsers);
+      setTotalPages(data.last_page || 1);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching users:", err.message);
+      setError(err.message);
+      Alert.alert(t("common.error") || "خطأ", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredUsers = users.filter((user) => {
+    console.log("Filtering user:", user.name, "role_id:", user.role_id, "selectedRole:", selectedRole);
+    return (
+      (selectedRole === "all" || user.role_id === selectedRole) &&
       (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+    );
+  });
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString();
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return dateString;
+    }
+  };
+
+  const validateDate = (dateString) => {
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateString)) return false;
+    const date = new Date(dateString);
+    return date instanceof Date && !isNaN(date);
   };
 
   const renderIcon = (iconName, size = 24, color = "#4e342e") => {
@@ -159,6 +186,7 @@ const UsersScreen = () => {
   const handleEditUser = async (user) => {
     try {
       const token = await AsyncStorage.getItem("authToken");
+      console.log("Retrieved Token for Edit User:", token);
       if (!token) {
         throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
       }
@@ -174,18 +202,22 @@ const UsersScreen = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.log("Edit User Error Response:", errorData);
         throw new Error(
           errorData.message || t("admin.fetchUserError") || `فشل في جلب بيانات المستخدم (Status: ${response.status})`
         );
       }
 
       const userData = await response.json();
+      console.log("Edit User API Response:", userData);
+      console.log("API Response Status:", response.status);
+
       setUserName(userData.name || "");
       setUserEmail(userData.email || "");
-      setUserRole(userData.role || "بائع");
-      setUserStatus(userData.status || "active");
+      setUserRoleId(userData.roles[0]?.id?.toString() || "2");
+      setUserStatus(userData.blocked ? "inactive" : "active");
       setUserJoinDate(userData.created_at || "");
-      setUserBranchId(userData.branch_id || "1");
+      setUserBranchId(userData.branches[0]?.id?.toString() || "1");
       setUserEditId(user.id);
       setIsEditingUser(true);
       setFormVisible(true);
@@ -210,6 +242,8 @@ const UsersScreen = () => {
           onPress: async () => {
             try {
               const token = await AsyncStorage.getItem("authToken");
+              console.log("Retrieved Token for Delete User:", token);
+              console.log("Deleting user with ID:", user.id);
               if (!token) {
                 throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
               }
@@ -223,10 +257,13 @@ const UsersScreen = () => {
                 },
               });
 
+              const result = await response.json().catch(() => ({}));
+              console.log("Delete User API Response:", result);
+              console.log("API Response Status:", response.status);
+
               if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
                 throw new Error(
-                  errorData.message || t("admin.deleteUserError") || `فشل في حذف المستخدم (Status: ${response.status})`
+                  result.message || t("admin.deleteUserError") || `فشل في حذف المستخدم (Status: ${response.status})`
                 );
               }
 
@@ -235,6 +272,8 @@ const UsersScreen = () => {
                 t("admin.deleteUser") || "حذف المستخدم",
                 t("admin.deleteUserSuccess") || "تم حذف المستخدم بنجاح"
               );
+              // Refresh users list
+              fetchUsers();
             } catch (err) {
               console.error("Error deleting user:", err.message);
               Alert.alert(t("common.error") || "خطأ", err.message);
@@ -250,6 +289,7 @@ const UsersScreen = () => {
     setUserEmailError("");
     setUserPasswordError("");
     setUserBranchIdError("");
+    setUserJoinDateError("");
 
     let hasError = false;
 
@@ -268,8 +308,13 @@ const UsersScreen = () => {
       hasError = true;
     }
 
-    if (!userBranchId || !["1", "2"].includes(userBranchId)) {
+    if (!userBranchId || !["1", "3"].includes(userBranchId)) {
       setUserBranchIdError(t("admin.branchInvalid") || "يجب اختيار فرع صالح");
+      hasError = true;
+    }
+
+    if (userJoinDate && !validateDate(userJoinDate)) {
+      setUserJoinDateError(t("admin.dateInvalid") || "صيغة التاريخ غير صالحة (YYYY-MM-DD)");
       hasError = true;
     }
 
@@ -277,6 +322,14 @@ const UsersScreen = () => {
 
     try {
       const token = await AsyncStorage.getItem("authToken");
+      console.log("Retrieved Token for Add/Edit User:", token);
+      console.log("User Data to be sent:", {
+        name: userName.trim(),
+        email: userEmail.trim(),
+        role_id: parseInt(userRoleId),
+        branch_id: parseInt(userBranchId),
+        ...(isEditingUser ? {} : { password: userPassword.trim() }),
+      });
       if (!token) {
         throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
       }
@@ -284,7 +337,7 @@ const UsersScreen = () => {
       const userData = {
         name: userName.trim(),
         email: userEmail.trim(),
-        role: userRole,
+        role_id: parseInt(userRoleId),
         branch_id: parseInt(userBranchId),
       };
 
@@ -306,30 +359,34 @@ const UsersScreen = () => {
         body: JSON.stringify(userData),
       });
 
+      const result = await response.json();
+      console.log("Add/Edit User API Response:", result);
+      console.log("API Response Status:", response.status);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
         if (response.status === 422) {
-          const errorDetails = errorData.errors
-            ? Object.entries(errorData.errors)
+          const errorDetails = result.errors
+            ? Object.entries(result.errors)
                 .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
                 .join("; ")
-            : errorData.message || t("admin.invalidData") || "البيانات المرسلة غير صالحة";
+            : result.message || t("admin.invalidData") || "البيانات المرسلة غير صالحة";
           throw new Error(`خطأ 422: ${errorDetails}`);
         }
         throw new Error(
-          errorData.message || t("admin.saveUserError") || `فشل في حفظ المستخدم (Status: ${response.status})`
+          result.message || t("admin.saveUserError") || `فشل في حفظ المستخدم (Status: ${response.status})`
         );
       }
 
-      const result = await response.json();
       const updatedUser = {
         id: isEditingUser ? userEditId : result.id || Date.now(),
         name: userName.trim(),
         email: userEmail.trim(),
-        role: userRole,
+        role_id: userRoleId,
+        role_name: roles.find((r) => r.id === userRoleId)?.name || "بائع",
         status: userStatus,
         joinDate: userJoinDate || new Date().toISOString().split("T")[0],
-        branch_id: parseInt(userBranchId),
+        branch_ids: [userBranchId],
+        branch_names: [branches.find((b) => b.id === userBranchId)?.name || "فرع غير معروف"],
       };
 
       if (isEditingUser) {
@@ -347,6 +404,8 @@ const UsersScreen = () => {
       }
 
       clearUserForm();
+      // Refresh users list
+      fetchUsers();
     } catch (err) {
       console.error("Error adding/editing user:", err.message);
       Alert.alert(t("common.error") || "خطأ", err.message);
@@ -357,7 +416,7 @@ const UsersScreen = () => {
     setUserName("");
     setUserEmail("");
     setUserPassword("");
-    setUserRole("بائع");
+    setUserRoleId("2");
     setUserStatus("active");
     setUserJoinDate("");
     setUserBranchId("1");
@@ -367,6 +426,7 @@ const UsersScreen = () => {
     setUserEmailError("");
     setUserPasswordError("");
     setUserBranchIdError("");
+    setUserJoinDateError("");
     setFormVisible(false);
   };
 
@@ -699,26 +759,29 @@ const UsersScreen = () => {
             style={styles.filterScrollView}
             contentContainerStyle={{ paddingHorizontal: 0 }}
           >
-            {roles.map((role) => (
+            {[{ id: "all", name: t("common.all") || "الكل" }, ...roles].map((role) => (
               <TouchableOpacity
-                key={role}
+                key={role.id}
                 style={[
                   styles.filterButton,
-                  selectedRole === role
+                  selectedRole === role.id
                     ? styles.filterButtonActive
                     : styles.filterButtonInactive,
                 ]}
-                onPress={() => setSelectedRole(role)}
+                onPress={() => {
+                  console.log("Selected Role:", role.id);
+                  setSelectedRole(role.id);
+                }}
               >
                 <Text
                   style={[
                     styles.filterButtonText,
-                    selectedRole === role
+                    selectedRole === role.id
                       ? styles.filterButtonTextActive
                       : styles.filterButtonTextInactive,
                   ]}
                 >
-                  {role === "all" ? t("common.all") || "الكل" : t(`common.roles.${role}`) || role}
+                  {role.name}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -755,9 +818,7 @@ const UsersScreen = () => {
                   <View style={styles.userInfo}>
                     <Text style={styles.userName}>{user.name}</Text>
                     <Text style={styles.userEmail}>{user.email}</Text>
-                    <Text style={styles.userRole}>
-                      {t(`common.roles.${user.role}`) || user.role}
-                    </Text>
+                    <Text style={styles.userRole}>{user.role_name}</Text>
                   </View>
                   <View
                     style={[
@@ -786,6 +847,15 @@ const UsersScreen = () => {
                   </View>
                   <Text style={styles.detailText}>
                     {t("admin.joinDate") || "تاريخ الانضمام"}: {formatDate(user.joinDate)}
+                  </Text>
+                </View>
+
+                <View style={styles.userDetails}>
+                  <View style={styles.detailIcon}>
+                    {renderIcon("Shield", 18, "#4e342e")}
+                  </View>
+                  <Text style={styles.detailText}>
+                    {t("admin.branches") || "الفروع"}: {user.branch_names.join(", ")}
                   </Text>
                 </View>
 
@@ -921,12 +991,12 @@ const UsersScreen = () => {
           ) : null}
 
           <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
-            {roles.filter((role) => role !== "all").map((role) => (
+            {roles.map((role) => (
               <TouchableOpacity
-                key={role}
-                onPress={() => setUserRole(role)}
+                key={role.id}
+                onPress={() => setUserRoleId(role.id)}
                 style={{
-                  backgroundColor: userRole === role ? "#8d6e63" : "#e5d4c0",
+                  backgroundColor: userRoleId === role.id ? "#8d6e63" : "#e5d4c0",
                   paddingVertical: 8,
                   borderRadius: 8,
                   marginRight: 8,
@@ -936,8 +1006,8 @@ const UsersScreen = () => {
                   flex: 1,
                 }}
               >
-                <Text style={{ color: userRole === role ? "#fff" : "#4e342e", fontWeight: "bold" }}>
-                  {t(`common.roles.${role}`) || role}
+                <Text style={{ color: userRoleId === role.id ? "#fff" : "#4e342e", fontWeight: "bold" }}>
+                  {role.name}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -946,10 +1016,10 @@ const UsersScreen = () => {
           <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
             {branches.map((branch) => (
               <TouchableOpacity
-                key={branch}
-                onPress={() => setUserBranchId(branch)}
+                key={branch.id}
+                onPress={() => setUserBranchId(branch.id)}
                 style={{
-                  backgroundColor: userBranchId === branch ? "#8d6e63" : "#e5d4c0",
+                  backgroundColor: userBranchId === branch.id ? "#8d6e63" : "#e5d4c0",
                   paddingVertical: 8,
                   borderRadius: 8,
                   marginRight: 8,
@@ -959,12 +1029,17 @@ const UsersScreen = () => {
                   flex: 1,
                 }}
               >
-                <Text style={{ color: userBranchId === branch ? "#fff" : "#4e342e", fontWeight: "bold" }}>
-                  {t(`admin.branch${branch}`) || `فرع ${branch}`}
+                <Text style={{ color: userBranchId === branch.id ? "#fff" : "#4e342e", fontWeight: "bold" }}>
+                  {branch.name}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
+          {userBranchIdError ? (
+            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+              {userBranchIdError}
+            </Text>
+          ) : null}
 
           <View style={{ flexDirection: "row", marginVertical: 10 }}>
             <TouchableOpacity
@@ -1007,9 +1082,17 @@ const UsersScreen = () => {
           <TextInput
             placeholder={t("admin.joinDate") || "تاريخ الانضمام (YYYY-MM-DD)"}
             value={userJoinDate}
-            onChangeText={(text) => setUserJoinDate(text)}
+            onChangeText={(text) => {
+              setUserJoinDate(text);
+              if (!text || validateDate(text)) setUserJoinDateError("");
+            }}
             style={styles.inputField}
           />
+          {userJoinDateError ? (
+            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+              {userJoinDateError}
+            </Text>
+          ) : null}
 
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
             <TouchableOpacity
