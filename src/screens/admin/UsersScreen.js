@@ -101,20 +101,27 @@ const UsersScreen = () => {
       }
 
       const data = await response.json();
-      console.log("Users API Response:", data);
+      console.log("Users API Response:", JSON.stringify(data, null, 2));
       console.log("API Response Status:", response.status);
 
-      const mappedUsers = data.data.map((user) => ({
-        id: user.id || Date.now(),
-        name: user.name || "مستخدم بدون اسم",
-        email: user.email || "لا يوجد بريد إلكتروني",
-        role_id: user.roles[0]?.id?.toString() || "2", // Convert to string for comparison
-        role_name: user.roles[0]?.display_name || "بائع",
-        status: user.blocked ? "inactive" : "active",
-        joinDate: user.created_at || new Date().toISOString().split("T")[0],
-        branch_ids: user.branches.map((b) => b.id.toString()),
-        branch_names: user.branches.map((b) => b.name),
-      }));
+      const mappedUsers = data.data.map((user) => {
+        const createdAt = user.created_at ? user.created_at.split("T")[0] : new Date().toISOString().split("T")[0];
+        const roleId = user.role ? user.role.toString() : (user.roles && user.roles[0]?.id ? user.roles[0].id.toString() : "2");
+        const roleName = user.role ? (roles.find(r => r.id === user.role.toString())?.name || "بائع") : 
+                         (user.roles && user.roles[0]?.display_name ? user.roles[0].display_name : "بائع");
+        console.log("Processing user:", user.name, "created_at:", user.created_at, "mapped joinDate:", createdAt, "role:", roleId);
+        return {
+          id: user.id || Date.now(),
+          name: user.name || "مستخدم بدون اسم",
+          email: user.email || "لا يوجد بريد إلكتروني",
+          role_id: roleId,
+          role_name: roleName,
+          status: user.blocked ? "inactive" : "active",
+          joinDate: createdAt,
+          branch_ids: user.branches.map((b) => b.id.toString()),
+          branch_names: user.branches.map((b) => b.name),
+        };
+      });
 
       setUsers(mappedUsers);
       setTotalPages(data.last_page || 1);
@@ -137,19 +144,71 @@ const UsersScreen = () => {
     );
   });
 
-  const formatDate = (dateString) => {
-    try {
-      return new Date(dateString).toLocaleDateString();
-    } catch {
-      return dateString;
+  const normalizeDate = (dateString) => {
+    if (!dateString) return null;
+    console.log("Normalizing date:", dateString);
+    
+    const formats = [
+      /^(\d{4})-(\d{2})-(\d{2})$/, // YYYY-MM-DD
+      /^(\d{2})-(\d{2})-(\d{4})$/, // DD-MM-YYYY
+      /^(\d{4})\/(\d{2})\/(\d{2})$/, // YYYY/MM/DD
+      /^(\d{2})\/(\d{2})\/(\d{4})$/, // DD/MM/YYYY
+    ];
+
+    for (const regex of formats) {
+      const match = dateString.match(regex);
+      if (match) {
+        let year, month, day;
+        if (regex.test("2023-05-08") || regex.test("2023/05/08")) {
+          [, year, month, day] = match;
+        } else {
+          [, day, month, year] = match;
+        }
+        const normalized = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        console.log("Normalized to:", normalized);
+        return normalized;
+      }
     }
+
+    console.log("Invalid date format:", dateString);
+    return null;
   };
 
   const validateDate = (dateString) => {
-    const regex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!regex.test(dateString)) return false;
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date);
+    if (!dateString) return true;
+    const normalized = normalizeDate(dateString);
+    if (!normalized) return false;
+
+    try {
+      const [year, month, day] = normalized.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      const isValid = !isNaN(date.getTime()) && 
+                      date.getFullYear() === year && 
+                      date.getMonth() === month - 1 && 
+                      date.getDate() === day;
+      console.log("Validating date:", dateString, "Normalized:", normalized, "Is Valid:", isValid);
+      return isValid;
+    } catch (err) {
+      console.log("Error validating date:", err.message, "input:", dateString);
+      return false;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return t("admin.noDate") || "لا يوجد تاريخ";
+    const normalized = normalizeDate(dateString);
+    if (!normalized || !validateDate(normalized)) {
+      console.log("Invalid date for formatting:", dateString);
+      return t("admin.invalidDate") || "تاريخ غير صالح";
+    }
+    try {
+      const [year, month, day] = normalized.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      return date.toISOString().split("T")[0];
+    } catch (err) {
+      console.log("Error formatting date:", err.message, "input:", dateString);
+      return t("admin.invalidDate") || "تاريخ غير صالح";
+    }
   };
 
   const renderIcon = (iconName, size = 24, color = "#4e342e") => {
@@ -209,14 +268,18 @@ const UsersScreen = () => {
       }
 
       const userData = await response.json();
-      console.log("Edit User API Response:", userData);
+      console.log("Edit User API Response:", JSON.stringify(userData, null, 2));
       console.log("API Response Status:", response.status);
 
       setUserName(userData.name || "");
       setUserEmail(userData.email || "");
-      setUserRoleId(userData.roles[0]?.id?.toString() || "2");
+      const roleId = userData.role ? userData.role.toString() : (userData.roles && userData.roles[0]?.id ? userData.roles[0].id.toString() : "2");
+      console.log("Setting roleId for edit:", roleId);
+      setUserRoleId(roleId);
       setUserStatus(userData.blocked ? "inactive" : "active");
-      setUserJoinDate(userData.created_at || "");
+      const joinDate = userData.created_at ? userData.created_at.split("T")[0] : "";
+      console.log("Setting joinDate for edit:", joinDate);
+      setUserJoinDate(joinDate);
       setUserBranchId(userData.branches[0]?.id?.toString() || "1");
       setUserEditId(user.id);
       setIsEditingUser(true);
@@ -272,7 +335,6 @@ const UsersScreen = () => {
                 t("admin.deleteUser") || "حذف المستخدم",
                 t("admin.deleteUserSuccess") || "تم حذف المستخدم بنجاح"
               );
-              // Refresh users list
               fetchUsers();
             } catch (err) {
               console.error("Error deleting user:", err.message);
@@ -285,132 +347,144 @@ const UsersScreen = () => {
   };
 
   const handleAddUser = async () => {
-    setUserNameError("");
-    setUserEmailError("");
-    setUserPasswordError("");
-    setUserBranchIdError("");
-    setUserJoinDateError("");
+  setUserNameError("");
+  setUserEmailError("");
+  setUserPasswordError("");
+  setUserBranchIdError("");
+  setUserJoinDateError("");
 
-    let hasError = false;
+  let hasError = false;
 
-    if (!userName.trim()) {
-      setUserNameError(t("admin.nameRequired") || "الاسم مطلوب");
-      hasError = true;
+  if (!userName.trim()) {
+    setUserNameError(t("admin.nameRequired") || "الاسم مطلوب");
+    hasError = true;
+  }
+
+  if (!userEmail.trim() || !userEmail.includes("@")) {
+    setUserEmailError(t("admin.emailInvalid") || "البريد الإلكتروني غير صالح");
+    hasError = true;
+  }
+
+  if (!isEditingUser && (!userPassword.trim() || userPassword.length < 6)) {
+    setUserPasswordError(t("admin.passwordInvalid") || "كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    hasError = true;
+  }
+
+  if (!userBranchId || !["1", "3"].includes(userBranchId)) {
+    setUserBranchIdError(t("admin.branchInvalid") || "يجب اختيار فرع صالح");
+    hasError = true;
+  }
+
+  const normalizedDate = normalizeDate(userJoinDate);
+  if (userJoinDate && !normalizedDate) {
+    setUserJoinDateError(t("admin.dateInvalid") || "التاريخ غير صالح، استخدم YYYY-MM-DD أو DD-MM-YYYY");
+    hasError = true;
+  }
+
+  if (!userRoleId || !["1", "2"].includes(userRoleId)) {
+    setError(t("admin.roleRequired") || "الدور مطلوب");
+    hasError = true;
+  }
+
+  if (hasError) return;
+
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    console.log("Retrieved Token for Add/Edit User:", token);
+
+    // تحويل userRoleId إلى النص العربي
+    const roleName = roles.find((r) => r.id === userRoleId)?.name || "بائع";
+
+    console.log("User Data to be sent:", {
+      name: userName.trim(),
+      email: userEmail.trim(),
+      role: roleName, // إرسال النص العربي ("بائع" أو "المدير")
+      branch_id: parseInt(userBranchId),
+      created_at: normalizedDate || new Date().toISOString().split("T")[0],
+      ...(isEditingUser ? {} : { password: userPassword.trim() }),
+    });
+
+    if (!token) {
+      throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
     }
 
-    if (!userEmail.trim() || !userEmail.includes("@")) {
-      setUserEmailError(t("admin.emailInvalid") || "البريد الإلكتروني غير صالح");
-      hasError = true;
+    const userData = {
+      name: userName.trim(),
+      email: userEmail.trim(),
+      role: roleName, // إرسال النص العربي بدلاً من المعرف
+      branch_id: parseInt(userBranchId),
+      created_at: normalizedDate || new Date().toISOString().split("T")[0],
+    };
+
+    if (!isEditingUser) {
+      userData.password = userPassword.trim();
     }
 
-    if (!isEditingUser && (!userPassword.trim() || userPassword.length < 6)) {
-      setUserPasswordError(t("admin.passwordInvalid") || "كلمة المرور يجب أن تكون 6 أحرف على الأقل");
-      hasError = true;
-    }
+    const endpoint = isEditingUser
+      ? `${BASE_URL}/admin/users/${userEditId}`
+      : `${BASE_URL}/admin/users`;
 
-    if (!userBranchId || !["1", "3"].includes(userBranchId)) {
-      setUserBranchIdError(t("admin.branchInvalid") || "يجب اختيار فرع صالح");
-      hasError = true;
-    }
+    const response = await fetch(endpoint, {
+      method: isEditingUser ? "PUT" : "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
 
-    if (userJoinDate && !validateDate(userJoinDate)) {
-      setUserJoinDateError(t("admin.dateInvalid") || "صيغة التاريخ غير صالحة (YYYY-MM-DD)");
-      hasError = true;
-    }
+    const result = await response.json();
+    console.log("Add/Edit User API Response:", JSON.stringify(result, null, 2));
+    console.log("API Response Status:", response.status);
 
-    if (hasError) return;
-
-    try {
-      const token = await AsyncStorage.getItem("authToken");
-      console.log("Retrieved Token for Add/Edit User:", token);
-      console.log("User Data to be sent:", {
-        name: userName.trim(),
-        email: userEmail.trim(),
-        role_id: parseInt(userRoleId),
-        branch_id: parseInt(userBranchId),
-        ...(isEditingUser ? {} : { password: userPassword.trim() }),
-      });
-      if (!token) {
-        throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+    if (!response.ok) {
+      if (response.status === 422) {
+        const errorDetails = result.errors
+          ? Object.entries(result.errors)
+              .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
+              .join("; ")
+          : result.message || t("admin.invalidData") || "البيانات المرسلة غير صالحة";
+        throw new Error(`خطأ 422: ${errorDetails}`);
       }
-
-      const userData = {
-        name: userName.trim(),
-        email: userEmail.trim(),
-        role_id: parseInt(userRoleId),
-        branch_id: parseInt(userBranchId),
-      };
-
-      if (!isEditingUser) {
-        userData.password = userPassword.trim();
-      }
-
-      const endpoint = isEditingUser
-        ? `${BASE_URL}/admin/users/${userEditId}`
-        : `${BASE_URL}/admin/users`;
-
-      const response = await fetch(endpoint, {
-        method: isEditingUser ? "PUT" : "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const result = await response.json();
-      console.log("Add/Edit User API Response:", result);
-      console.log("API Response Status:", response.status);
-
-      if (!response.ok) {
-        if (response.status === 422) {
-          const errorDetails = result.errors
-            ? Object.entries(result.errors)
-                .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
-                .join("; ")
-            : result.message || t("admin.invalidData") || "البيانات المرسلة غير صالحة";
-          throw new Error(`خطأ 422: ${errorDetails}`);
-        }
-        throw new Error(
-          result.message || t("admin.saveUserError") || `فشل في حفظ المستخدم (Status: ${response.status})`
-        );
-      }
-
-      const updatedUser = {
-        id: isEditingUser ? userEditId : result.id || Date.now(),
-        name: userName.trim(),
-        email: userEmail.trim(),
-        role_id: userRoleId,
-        role_name: roles.find((r) => r.id === userRoleId)?.name || "بائع",
-        status: userStatus,
-        joinDate: userJoinDate || new Date().toISOString().split("T")[0],
-        branch_ids: [userBranchId],
-        branch_names: [branches.find((b) => b.id === userBranchId)?.name || "فرع غير معروف"],
-      };
-
-      if (isEditingUser) {
-        setUsers(users.map((u) => (u.id === userEditId ? updatedUser : u)));
-        Alert.alert(
-          t("admin.editUser") || "تعديل المستخدم",
-          t("admin.userUpdated") || `${userName} تم تعديله بنجاح!`
-        );
-      } else {
-        setUsers([...users, updatedUser]);
-        Alert.alert(
-          t("admin.addUser") || "إضافة مستخدم",
-          t("admin.userAdded") || `${userName} تم إضافته بنجاح!`
-        );
-      }
-
-      clearUserForm();
-      // Refresh users list
-      fetchUsers();
-    } catch (err) {
-      console.error("Error adding/editing user:", err.message);
-      Alert.alert(t("common.error") || "خطأ", err.message);
+      throw new Error(
+        result.message || t("admin.saveUserError") || `فشل في حفظ المستخدم (Status: ${response.status})`
+      );
     }
-  };
+
+    const updatedUser = {
+      id: isEditingUser ? userEditId : result.id || Date.now(),
+      name: userName.trim(),
+      email: userEmail.trim(),
+      role_id: userRoleId,
+      role_name: roleName, // استخدام النص العربي
+      status: userStatus,
+      joinDate: normalizedDate || new Date().toISOString().split("T")[0],
+      branch_ids: [userBranchId],
+      branch_names: [branches.find((b) => b.id === userBranchId)?.name || "فرع غير معروف"],
+    };
+
+    if (isEditingUser) {
+      setUsers(users.map((u) => (u.id === userEditId ? updatedUser : u)));
+      Alert.alert(
+        t("admin.editUser") || "تعديل المستخدم",
+        t("admin.userUpdated") || `${userName} تم تعديله بنجاح!`
+      );
+    } else {
+      setUsers([...users, updatedUser]);
+      Alert.alert(
+        t("admin.addUser") || "إضافة مستخدم",
+        t("admin.userAdded") || `${userName} تم إضافته بنجاح!`
+      );
+    }
+
+    clearUserForm();
+    fetchUsers();
+  } catch (err) {
+    console.error("Error adding/editing user:", err.message);
+    Alert.alert(t("common.error") || "خطأ", err.message);
+  }
+};
 
   const clearUserForm = () => {
     setUserName("");
@@ -700,6 +774,7 @@ const UsersScreen = () => {
       fontSize: 16,
       color: "#4e342e",
       marginBottom: 12,
+      textAlign: isRTL ? "right" : "left",
     },
     paginationContainer: {
       flexDirection: isRTL ? "row-reverse" : "row",
@@ -1012,6 +1087,11 @@ const UsersScreen = () => {
               </TouchableOpacity>
             ))}
           </View>
+          {error && error.includes("roleRequired") ? (
+            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+              {error}
+            </Text>
+          ) : null}
 
           <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
             {branches.map((branch) => (
@@ -1080,11 +1160,13 @@ const UsersScreen = () => {
           </View>
 
           <TextInput
-            placeholder={t("admin.joinDate") || "تاريخ الانضمام (YYYY-MM-DD)"}
+            placeholder={t("admin.joinDate") || "تاريخ الانضمام (YYYY-MM-DD أو DD-MM-YYYY)"}
             value={userJoinDate}
             onChangeText={(text) => {
               setUserJoinDate(text);
-              if (!text || validateDate(text)) setUserJoinDateError("");
+              const normalized = normalizeDate(text);
+              if (!text || normalized) setUserJoinDateError("");
+              else setUserJoinDateError(t("admin.dateInvalid") || "التاريخ غير صالح، استخدم YYYY-MM-DD أو DD-MM-YYYY");
             }}
             style={styles.inputField}
           />
