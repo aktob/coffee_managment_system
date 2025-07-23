@@ -13,7 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
-import * as Notifications from "expo-notifications";
+// import * as Notifications from "expo-notifications";
 import {
   ClipboardList,
   Clock,
@@ -376,7 +376,7 @@ const OrdersScreen = () => {
       shadowRadius: 8,
     },
     textInput: {
-      fontSize: 16,
+      fontSize: 14,
       color: isDark ? "#ffffff" : "#4e342e",
       flex: 1,
       textAlign: isRTL ? "right" : "left",
@@ -394,23 +394,16 @@ const OrdersScreen = () => {
       paddingVertical: 16,
       paddingHorizontal: 20,
       borderRadius: 28,
-      elevation: 6,
       backgroundColor: isDark ? "#2d2d2d" : "#fffaf5",
       borderWidth: 1,
       borderColor: isDark ? "#3d3d3d" : "#e5d4c0",
       alignItems: "center",
       justifyContent: "center",
       minWidth: 110,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.12,
-      shadowRadius: 6,
     },
     statusButtonSelected: {
       backgroundColor: isDark ? "#4d4d4d" : "#6d4c41",
       borderColor: isDark ? "#4d4d4d" : "#6d4c41",
-      elevation: 8,
-      shadowOpacity: 0.2,
     },
     statusIcon: {
       marginBottom: 6,
@@ -549,6 +542,8 @@ const OrdersScreen = () => {
       borderColor: isDark ? "#4d4d4d" : "#e5d4c0",
     },
     orderItemsTitle: {
+      paddingTop: 10,
+      paddingLeft: 3,
       fontSize: 18,
       fontWeight: "700",
       color: isDark ? "#ffffff" : "#4e342e",
@@ -988,7 +983,7 @@ const OrdersScreen = () => {
                         >
                           {renderIcon(
                             "ShoppingBag",
-                            18,
+                            28,                                 
                             isDark ? "#ffffff" : "#4e342e"
                           )}
                           <Text style={styles.orderItemsTitle}>
@@ -1022,7 +1017,7 @@ const OrdersScreen = () => {
                           </Text>
                         </View>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>
+                          <Text style={styles.detailLabel}>               
                             {t("worker.estimatedReady")}
                           </Text>
                           <Text
@@ -1037,11 +1032,11 @@ const OrdersScreen = () => {
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>
                             {t("worker.timeRemaining")}
-                          </Text>
+                          </Text> 
                           <Text style={styles.detailValue}>
-                            {getRemainingTime(order.estimatedTime)}
+                            {getRemainingTime(order.estimatedTime)}           
                           </Text>
-                        </View>
+                        </View> 
                         <View style={styles.detailRow}>
                           <Text style={styles.detailLabel}>
                             {t("worker.payment")}

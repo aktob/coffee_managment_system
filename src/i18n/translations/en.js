@@ -79,6 +79,7 @@ export default {
     sat: "Sat",
     sun: "Sun",
     profile: "Profile",
+    ready: "Ready",
     roles: {
       admin: "Administrator",
       supervisor: "Supervisor",
@@ -459,6 +460,7 @@ export default {
     taskDue: "Due",
     startTask: "Start Task",
     completeTask: "Complete Task",
+    timeRemaining: "Time Remaining",
 
     // Enhanced Order Management
     customerInformation: "Customer Information",

@@ -1176,7 +1176,7 @@ const renderProductCard = (product) => {
             </View>
           ) : filteredProducts.length > 0 ? (
             viewMode === "grid" ? (
-              <View style={styles.gridContainer}>
+              <View style={styles.gridContainer}>              
                 {filteredProducts.map(renderProductCard)}
               </View>
             ) : (
