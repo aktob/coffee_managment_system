@@ -261,23 +261,16 @@ const TasksScreen = () => {
       paddingVertical: 16,
       paddingHorizontal: 20,
       borderRadius: 28,
-      elevation: 6,
       backgroundColor: "#fffaf5",
       borderWidth: 1,
       borderColor: "#e5d4c0",
       alignItems: "center",
       justifyContent: "center",
       minWidth: 110,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.12,
-      shadowRadius: 6,
     },
     priorityButtonSelected: {
       backgroundColor: "#4e342e",
       borderColor: "#4e342e",
-      elevation: 8,
-      shadowOpacity: 0.2,
     },
     priorityLabel: {
       fontSize: 13,
@@ -387,7 +380,7 @@ const TasksScreen = () => {
       flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
       backgroundColor: "#f7f3ef",
-      paddingHorizontal: 12,
+      paddingLeft: 8,
       paddingVertical: 6,
       borderRadius: 16,
     },
@@ -464,7 +457,7 @@ const TasksScreen = () => {
     },
     completeButton: {
       flex: 1,
-      backgroundColor: "#8d6e63",
+      backgroundColor: "#6d4c41",
       padding: 16,
       borderRadius: 20,
       alignItems: "center",
@@ -499,6 +492,7 @@ const TasksScreen = () => {
       marginLeft: isRTL ? 8 : 0,
       fontSize: 15,
       letterSpacing: 0.3,
+      paddingLeft: 15,     
     },
     detailsButtonText: {
       color: "#4e342e",
@@ -567,7 +561,7 @@ const TasksScreen = () => {
                     style={[
                       styles.priorityLabel,
                       selectedPriority === priority.key &&
-                        styles.priorityLabelSelected,
+                      styles.priorityLabelSelected,
                     ]}
                   >
                     {priority.label}

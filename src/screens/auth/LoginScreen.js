@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   languageContainer: {
     position: "absolute",
     top: 50,
-    right: 50,
+    right: 20,
   },
   languageButton: {
     flexDirection: "row",
