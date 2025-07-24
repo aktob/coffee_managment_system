@@ -448,6 +448,7 @@ export default {
     newOrder: "طلب جديد",
     orderStatus: "حالة الطلب",
     customerName: "اسم العميل",
+    searchProducts: "ابحث باسم المنتج",
     orderItems: "عناصر الطلب",
     orderTotal: "المجموع",
     placeOrder: "تأكيد الطلب",
@@ -458,6 +459,8 @@ export default {
     taskDue: "موعد التسليم",
     startTask: "بدء المهمة",
     completeTask: "إكمال المهمة",
+    page: "صفحة رقم",
+    of: "من",
 
     // Enhanced Order Management
     customerInformation: "معلومات العميل",
@@ -541,6 +544,7 @@ export default {
     completeOrderButton: "إكمال الطلب",
     detailsButton: "التفاصيل",
     filterByStatus: "تصفية حسب الحالة",
+    loading: "يتم تحميل الطلبات",
 
     // Status translations for badges
     statusPending: "قيد الانتظار",
@@ -572,9 +576,10 @@ export default {
     preparationTime: "وقت التحضير",
 
     // Categories
-    peansTypes:"أنواع البن",
+    peansTypes: "أنواع البن",
     hotDrinks: "مشروبات ساخنة",
     coldDrinks: "مشروبات باردة",
+    Drinks: "المشروبات ",
     foodItems: "طعام ووجبات خفيفة",
 
     // Product Names

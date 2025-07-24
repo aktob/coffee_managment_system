@@ -450,6 +450,7 @@ export default {
     newOrder: "New Order",
     orderStatus: "Order Status",
     customerName: "Customer Name",
+    searchProducts: "products name",
     orderItems: "Order Items",
     orderTotal: "Total",
     placeOrder: "Place Order",
@@ -461,6 +462,8 @@ export default {
     startTask: "Start Task",
     completeTask: "Complete Task",
     timeRemaining: "Time Remaining",
+    page: "page",
+    of: "of",
 
     // Enhanced Order Management
     customerInformation: "Customer Information",
@@ -534,7 +537,7 @@ export default {
     actionButtons: "Action Buttons",
     filterOptions: "filter section",
     filterByPayment: "Filter by Payment Method",
-    allPayments:"all payments",
+    allPayments: "all payments",
     mobilePayment: "by Mobile",
     cash: "Cash",
     creditCard: "creditCard",
@@ -553,6 +556,7 @@ export default {
     completeOrderButton: "Complete Order",
     detailsButton: "Details",
     filterByStatus: "Filter by Status",
+    loading: "loading...",
 
     // Status translations for badges
     statusPending: "Pending",
@@ -583,9 +587,10 @@ export default {
     preparationTime: "Preparation Time",
 
     // Categories
-    peansTypes:"peans Types",
+    peansTypes: "peans Types",
     hotDrinks: "Hot Drinks",
     coldDrinks: "Cold Drinks",
+    Drinks: "Drinks ",
     foodItems: "Food Items",
 
     // Product Names
