@@ -37,6 +37,7 @@ const OrderStatusScreen = () => {
   const route = useRoute();
   const orderId = route.params?.orderId || "ORD001";
 
+
   const order = {
     id: orderId,
     customerName: "John Smith",
@@ -93,6 +94,10 @@ const OrderStatusScreen = () => {
       },
     ],
   };
+
+
+  const [orderData, setOrderData] = useState(order);
+  const [actionsVisible, setActionsVisible] = useState(true);
 
   const getTranslatedProductName = (productName) => {
     const translations = {
@@ -172,49 +177,52 @@ const OrderStatusScreen = () => {
   };
 
   const handleCancelOrder = () => {
-    Alert.alert(t("worker.cancelOrder"), t("worker.cancelOrderConfirm"), [
-      {
-        text: t("common.cancel"),
-        style: "cancel",
+  Alert.alert(t("worker.cancelOrder"), t("worker.cancelOrderConfirm"), [
+    {
+      text: t("common.cancel"),
+      style: "cancel",
+    },
+    {
+      text: t("worker.cancelOrder"),
+      style: "destructive",
+      onPress: () => {
+        
+        // حزف الأوردر من الليست
+        setOrderData(null); // 👈 يخفي الطلب من الشاشة
+        // إخفاء الزرارين بعد الإلغاء
+        setActionsVisible(false);
       },
-      {
-        text: t("worker.cancelOrder"),
-        style: "destructive",
-        onPress: () => {
-          console.log("Order cancelled");
-        },
-      },
-    ]);
-  };
+    },
+  ]);
+};
 
-  const handleMarkReady = () => {
-    Alert.alert(t("worker.markReady"), t("worker.markReadyConfirm"), [
-      {
-        text: t("common.cancel"),
-        style: "cancel",
-      },
-      {
-        text: t("worker.markReady"),
-        onPress: () => {
-          console.log("Order marked ready");
-        },
-      },
-    ]);
-  };
+
+const handleMarkReady = () => {
+  const updatedSteps = orderData.steps.map((step) => ({
+    ...step,
+    completed: true,
+    time: step.time || new Date().toLocaleTimeString(),
+  }));
+
+  setOrderData((prevOrder) => ({
+    ...prevOrder,
+    steps: updatedSteps,
+  }));
+
+    setActionsVisible(false); // 👈 إخفاء الأزرار
+};
+
 
   const handleMarkComplete = (stepId) => {
-    Alert.alert(t("worker.markComplete"), t("worker.markCompleteConfirm"), [
-      {
-        text: t("common.cancel"),
-        style: "cancel",
-      },
-      {
-        text: t("worker.markComplete"),
-        onPress: () => {
-          console.log(`Step ${stepId} marked complete`);
-        },
-      },
-    ]);
+     const updatedSteps = orderData.steps.map((step) =>
+    step.id === stepId ? { ...step, completed: true, time: new Date().toLocaleTimeString() } : step
+  );
+
+    setOrderData((prevOrder) => ({
+    ...prevOrder,
+    steps: updatedSteps,
+  }));
+
   };
 
   const styles = StyleSheet.create({
@@ -600,8 +608,9 @@ const OrderStatusScreen = () => {
 
         {/* Progress Timeline */}
         <Text style={styles.progressTitle}>{t("worker.orderProgress")}</Text>
+        {orderData && (
         <View style={styles.card}>
-          {order.steps.map((step, idx) => {
+          {orderData.steps.map((step, idx) => {
             return (
               <View key={step.id} style={styles.stepRow}>
                 <View style={styles.timeline}>
@@ -615,7 +624,7 @@ const OrderStatusScreen = () => {
                   >
                     {renderIcon(step.icon, 24, "#fff")}
                   </View>
-                  {idx < order.steps.length - 1 && (
+                  {idx < orderData.steps.length - 1 && (
                     <View style={styles.timelineLine} />
                   )}
                 </View>
@@ -649,8 +658,9 @@ const OrderStatusScreen = () => {
             );
           })}
         </View>
-
+)}
         {/* Action Buttons */}
+        {actionsVisible && (
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: "#d9534f" }]}
@@ -669,6 +679,7 @@ const OrderStatusScreen = () => {
             <Text style={styles.actionButtonText}>{t("worker.markReady")}</Text>
           </TouchableOpacity>
         </View>
+        )}
       </ScrollView>
     </View>
   );
