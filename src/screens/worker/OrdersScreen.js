@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,11 @@ import {
   Dimensions,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
-// import * as Notifications from "expo-notifications";
 import {
   ClipboardList,
   Clock,
@@ -26,40 +26,154 @@ import {
   Eye,
   DollarSign,
   ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
 
-// Mock data as fallback
-const mockOrders = [
-  {
-    id: "ORD001",
-    customerName: "John Smith",
-    customerPhone: "+1 (555) 123-4567",
-    items: [
-      {
-        name: "Espresso",
-        quantity: 1,
-        price: 2.99,
-        description: "Dark roast espresso",
-      },
-      {
-        name: "Croissant",
-        quantity: 2,
-        price: 4.98,
-        description: "Freshly baked croissant",
-      },
-    ],
-    total: 7.97,
-    status: "pending",
-    time: "2025-07-17T10:30:00Z",
-    estimatedTime: "10:45 AM",
-    paymentMethod: "Credit Card",
-    specialInstructions: "Extra hot espresso",
-  },
-  // ... (rest of mockOrders)
-];
+// دالة لمقارنة الطلبات لمنع التحديث غير الضروري
+const areOrdersEqual = (prevOrders, newOrders) => {
+  if (prevOrders.length !== newOrders.length) return false;
+  return prevOrders.every((prev, index) => {
+    const next = newOrders[index];
+    return (
+      prev.id === next.id &&
+      prev.customerName === next.customerName &&
+      prev.customerPhone === next.customerPhone &&
+      prev.total === next.total &&
+      prev.status === next.status &&
+      prev.time === next.time &&
+      prev.estimatedTime === next.estimatedTime &&
+      prev.paymentMethod === next.paymentMethod &&
+      prev.specialInstructions === next.specialInstructions &&
+      prev.items.length === next.items.length &&
+      prev.items.every((item, i) =>
+        item.quantity === next.items[i].quantity &&
+        item.name === next.items[i].name &&
+        item.price === next.items[i].price
+      )
+    );
+  });
+};
+
+// دالة debounce يدوية
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
+
+// كومبوننت منفصل لكارت الطلب مع React.memo
+const OrderCard = React.memo(({ order, isExpanded, toggleExpand, styles, isDark, isRTL, t, getStatusColor, getStatusText, renderIcon, viewProductDetails, startOrder, completeOrder, viewDetails, formatTime, getRemainingTime, getTranslatedPaymentMethod }) => {
+  const statusStyle = getStatusColor(order.status);
+
+  return (
+    <TouchableOpacity
+      onPress={toggleExpand}
+      style={styles.orderCard}
+      activeOpacity={0.8}
+    >
+      {/* رأس الطلب */}
+      <View style={styles.orderHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.orderCustomer}>{order.customerName}</Text>
+          <Text style={styles.orderId}>{t("worker.orderId")}: {order.id}</Text>
+          <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center" }}>
+            {/* لا يتم عرض الرموز إلا عندما تكون هناك بيانات للطلبات */}
+            {renderIcon("Phone", 14, isDark ? "#aaaaaa" : "#6b4f42")}
+            <Text style={styles.orderPhone}>{order.customerPhone}</Text>
+          </View>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
+          <Text style={[styles.statusBadgeText, { color: statusStyle.textColor }]}>
+            {getStatusText(order.status)}
+          </Text>
+        </View>
+      </View>
+
+      {isExpanded && (
+        <>
+          {/* المنتجات */}
+          <View style={styles.orderItemsContainer}>
+            <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", marginBottom: 12 }}>
+              {renderIcon("ShoppingBag", 28, isDark ? "#ffffff" : "#4e342e")}
+              <Text style={styles.orderItemsTitle}>{t("worker.orderItemsTitle")}</Text>
+            </View>
+            {order.items?.map((item, idx) => (
+              <TouchableOpacity key={idx} style={styles.orderItemRow} onPress={() => viewProductDetails(item)}>
+                <Text style={styles.orderItemName}>{item.quantity}x {item.name || "Unknown Item"}</Text>
+                <Text style={styles.orderItemPrice}>${(item.price ?? 0).toFixed(2)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* التفاصيل العامة */}
+          <View style={styles.orderDetailsContainer}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t("worker.orderTime")}</Text>
+              <Text style={styles.detailValue}>{formatTime(order.time)}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t("worker.estimatedReady")}</Text>
+              <Text style={[styles.detailValue, { color: isDark ? "#cccccc" : "#6d4c41" }]}>
+                {order.estimatedTime}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t("worker.timeRemaining")}</Text>
+              <Text style={styles.detailValue}>{getRemainingTime(order.estimatedTime)}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t("worker.payment")}</Text>
+              <Text style={styles.detailValue}>{getTranslatedPaymentMethod(order.paymentMethod)}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.totalLabel}>{t("common.total")}:</Text>
+              <Text style={styles.totalValue}>${(order.total ?? 0).toFixed(2)}</Text>
+            </View>
+          </View>
+
+          {/* تعليمات خاصة */}
+          {order.specialInstructions && (
+            <View style={styles.instructionsContainer}>
+              <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", marginBottom: 8 }}>
+                {renderIcon("FileText", 16, isDark ? "#ffffff" : "#4e342e")}
+                <Text style={styles.instructionsTitle}>{t("worker.specialInstructions")}:</Text>
+              </View>
+              <Text style={styles.instructionsText}>{order.specialInstructions}</Text>
+            </View>
+          )}
+
+          {/* أزرار العمليات */}
+          {order.status !== "completed" && (
+            <View style={styles.actionsRow}>
+              {order.status === "pending" && (
+                <TouchableOpacity style={styles.startButton} onPress={() => startOrder(order.id)}>
+                  {renderIcon("Play", 16, "#fff")}
+                  <Text style={styles.actionButtonText}>{t("worker.startOrderButton")}</Text>
+                </TouchableOpacity>
+              )}
+              {order.status === "in-progress" && (
+                <TouchableOpacity style={styles.completeButton} onPress={() => completeOrder(order.id)}>
+                  {renderIcon("CheckCircle", 16, "#fff")}
+                  <Text style={styles.actionButtonText}>{t("worker.completeOrderButton")}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.detailsButton} onPress={() => viewDetails(order)}>
+                {renderIcon("Eye", 16, isDark ? "#ffffff" : "#4e342e")}
+                <Text style={styles.detailsButtonText}>{t("worker.detailsButton")}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+      )}
+    </TouchableOpacity>
+  );
+});
 
 const OrdersScreen = () => {
   const { t } = useTranslation();
@@ -69,38 +183,56 @@ const OrdersScreen = () => {
   const isRTL = currentLanguage === "ar";
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const [orders, setOrders] = useState(mockOrders);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tempSearchQuery, setTempSearchQuery] = useState(""); // مؤقت للـ debounce
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("all");
   const [sort, setSort] = useState("newest");
   const [filterExpanded, setFilterExpanded] = useState(false);
-  const toggleFilter = () => setFilterExpanded(!filterExpanded);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1); // الصفحة الحالية
+  const [totalPages, setTotalPages] = useState(1); // عدد الصفحات الكلي
+  const limit = 10; // عدد الطلبات في الصفحة
+  const prevOrdersRef = useRef([]); // لتخزين الطلبات السابقة بدون رندر
 
-  const statuses = [
+  // دالة debounced لتحديث query السيرش
+  const debouncedSetSearchQuery = useCallback(
+    debounce((value) => {
+      setSearchQuery(value);
+    }, 300),
+    []
+  );
+
+  // تحديث tempSearchQuery مع كل تغيير في الـ input
+  const handleSearchChange = useCallback((text) => {
+    setTempSearchQuery(text);
+    debouncedSetSearchQuery(text);
+  }, [debouncedSetSearchQuery]);
+
+  const statuses = useMemo(() => [
     { key: "all", label: t("worker.allOrders"), icon: "ClipboardList" },
     { key: "pending", label: t("worker.pending"), icon: "Clock" },
     { key: "in-progress", label: t("worker.inProgress"), icon: "Timer" },
     { key: "completed", label: t("worker.completed"), icon: "CheckCircle" },
-  ];
+  ], [t]);
 
-  const paymentMethods = [
+  const paymentMethods = useMemo(() => [
     { key: "all", label: t("worker.allPayments") },
     { key: "Credit Card", label: t("worker.creditCard") },
     { key: "Cash", label: t("worker.cash") },
     { key: "Mobile Payment", label: t("worker.mobilePayment") },
-  ];
+  ], [t]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
       
       const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch("http://api-coffee.m-zedan.com/api/admin/orders", {
+      const response = await fetch(`http://api-coffee.m-zedan.com/api/admin/orders?page=${page}&limit=${limit}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -110,12 +242,19 @@ const OrdersScreen = () => {
       if (!response.ok) throw new Error("Failed to fetch orders");
       const data = await response.json();
       console.log("API Response:", data);
+      // Log لفحص شكل order.items
+      console.log("Order Items:", data.data.map(order => order.items));
 
       const transformedOrders = data.data.map((order) => ({
         id: order.id,
         customerName: order.created_by?.name || "Unknown",
         customerPhone: order.created_by?.phone || "N/A",
-        items: order.items || [], // Default to empty array if items is undefined
+        items: (order.items || []).map(item => ({
+          ...item,
+          name: item.name || "Unknown Item", // Default value لـ item.name
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+        })),
         total: parseFloat(order.total) || 0,
         status: order.status || "pending",
         time: order.created_at || new Date().toISOString(),
@@ -123,49 +262,67 @@ const OrdersScreen = () => {
         paymentMethod: order.paymentMethod || "Cash",
         specialInstructions: order.specialInstructions || "",
       }));
-      setOrders(transformedOrders);
+
+      // تحديث عدد الصفحات الكلي
+      setTotalPages(data.totalPages || Math.ceil(data.total / limit));
+
+      // تحديث الـ state بس لو الداتا اتغيرت
+      if (!areOrdersEqual(prevOrdersRef.current, transformedOrders)) {
+        prevOrdersRef.current = transformedOrders;
+        setOrders(transformedOrders);
+      }
     } catch (err) {
       console.error("Error fetching orders:", err);
       setError(t("common.errorFetchingData"));
-      setOrders(mockOrders);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, limit]);
 
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(() => {
-      fetchOrders();
-    }, 10000);
+    fetchOrders(currentPage);
+    const interval = setInterval(() => fetchOrders(currentPage), 100000); // 100 ثانية
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchOrders, currentPage]);
 
-  const startOrder = (orderId) => {
+  const handlePreviousPage = useCallback(() => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  }, [currentPage]);
+
+  const handleNextPage = useCallback(() => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  }, [currentPage, totalPages]);
+
+  const startOrder = useCallback((orderId) => {
     setOrders((prev) =>
       prev.map((order) =>
         order.id === orderId ? { ...order, status: "in-progress" } : order
       )
     );
-  };
+  }, []);
 
-  const completeOrder = (orderId) => {
+  const completeOrder = useCallback((orderId) => {
     setOrders((prev) =>
       prev.map((order) =>
         order.id === orderId ? { ...order, status: "completed" } : order
       )
     );
-  };
+  }, []);
 
-  const viewDetails = (order) => {
+  const viewDetails = useCallback((order) => {
     navigation.navigate("OrderDetailsScreen", { order });
-  };
+  }, [navigation]);
 
-  const viewProductDetails = (item) => {
-    Alert.alert(item.name, item.description || t("worker.noDescription"));
-  };
+  const viewProductDetails = useCallback((item) => {
+    Alert.alert(item.name || "Unknown Item", item.description || t("worker.noDescription"));
+  }, [t]);
 
-  const getStatusColor = (status) => {
+  const getStatusColor = useCallback((status) => {
     switch (status) {
       case "pending":
         return { backgroundColor: "#fef3c7", textColor: "#92400e" };
@@ -179,9 +336,9 @@ const OrdersScreen = () => {
           textColor: isDark ? "#ffffff" : "#374151",
         };
     }
-  };
+  }, [isDark]);
 
-  const getStatusText = (status) => {
+  const getStatusText = useCallback((status) => {
     switch (status) {
       case "pending":
         return t("worker.statusPending");
@@ -192,93 +349,78 @@ const OrdersScreen = () => {
       default:
         return status;
     }
-  };
+  }, [t]);
 
-  const getTranslatedPaymentMethod = (method) => {
+  const getTranslatedPaymentMethod = useCallback((method) => {
     const translations = {
       "Credit Card": t("worker.creditCard"),
       Cash: t("worker.cash"),
       "Mobile Payment": t("worker.mobilePayment"),
     };
     return translations[method] || method;
-  };
+  }, [t]);
 
-  const getRemainingTime = (estimatedTime) => {
+  const getRemainingTime = useCallback((estimatedTime) => {
     const now = new Date();
     const estimated = new Date(`2025-07-17 ${estimatedTime}`);
     const diff = Math.max(0, (estimated - now) / 1000 / 60);
     return diff > 0
       ? `${Math.floor(diff)} ${t("common.minutes")}`
       : t("common.ready");
-  };
+  }, [t]);
 
-  const filteredOrders = orders.filter(
-    (order) =>
-      (selectedStatus === "all" || order.status === selectedStatus) &&
-      (selectedPaymentMethod === "all" ||
-        order.paymentMethod === selectedPaymentMethod) &&
-      (order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customerPhone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.items.some((item) =>
-          item.name.toLowerCase().includes(searchQuery.toLowerCase())
-        ))
-  );
+  const filteredOrders = useMemo(() =>
+    orders.filter(
+      (order) =>
+        (selectedStatus === "all" || order.status === selectedStatus) &&
+        (selectedPaymentMethod === "all" || order.paymentMethod === selectedPaymentMethod) &&
+        (order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (order.id != null && String(order.id).toLowerCase().includes(searchQuery.toLowerCase())) ||
+          order.customerPhone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.items.some((item) => item.name && typeof item.name === 'string' && item.name.toLowerCase().includes(searchQuery.toLowerCase())))
+    ), [orders, selectedStatus, selectedPaymentMethod, searchQuery]);
 
-  const sortedOrders = [...filteredOrders].sort((a, b) => {
-    if (sort === "newest") return new Date(b.time) - new Date(a.time);
-    if (sort === "oldest") return new Date(a.time) - new Date(b.time);
-    return 0;
-  });
+  const sortedOrders = useMemo(() =>
+    [...filteredOrders].sort((a, b) => {
+      if (sort === "newest") return new Date(b.time) - new Date(a.time);
+      if (sort === "oldest") return new Date(a.time) - new Date(b.time);
+      return 0;
+    }), [filteredOrders, sort]);
 
-  const formatTime = (timestamp) => {
+  const formatTime = useCallback((timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
-  const getOrderCount = (status) => {
+  const getOrderCount = useCallback((status) => {
     if (status === "all") return orders.length;
     return orders.filter((order) => order.status === status).length;
-  };
+  }, [orders]);
 
-  const getTotalRevenue = () => {
+  const getTotalRevenue = useCallback(() => {
     return orders.reduce((total, order) => total + (order.total || 0), 0);
-  };
+  }, [orders]);
 
-  const renderIcon = (
-    iconName,
-    size = 24,
-    color = isDark ? "#ffffff" : "#4e342e"
-  ) => {
+  const renderIcon = useCallback((iconName, size = 24, color = isDark ? "#ffffff" : "#4e342e") => {
     switch (iconName) {
-      case "ClipboardList":
-        return <ClipboardList size={size} color={color} />;
-      case "Clock":
-        return <Clock size={size} color={color} />;
-      case "Timer":
-        return <Timer size={size} color={color} />;
-      case "CheckCircle":
-        return <CheckCircle size={size} color={color} />;
-      case "Search":
-        return <Search size={size} color={color} />;
-      case "Phone":
-        return <Phone size={size} color={color} />;
-      case "FileText":
-        return <FileText size={size} color={color} />;
-      case "Play":
-        return <Play size={size} color={color} />;
-      case "Eye":
-        return <Eye size={size} color={color} />;
-      case "DollarSign":
-        return <DollarSign size={size} color={color} />;
-      case "ShoppingBag":
-        return <ShoppingBag size={size} color={color} />;
-      default:
-        return null;
+      case "ClipboardList": return <ClipboardList size={size} color={color} />;
+      case "Clock": return <Clock size={size} color={color} />;
+      case "Timer": return <Timer size={size} color={color} />;
+      case "CheckCircle": return <CheckCircle size={size} color={color} />;
+      case "Search": return <Search size={size} color={color} />;
+      case "Phone": return <Phone size={size} color={color} />;
+      case "FileText": return <FileText size={size} color={color} />;
+      case "Play": return <Play size={size} color={color} />;
+      case "Eye": return <Eye size={size} color={color} />;
+      case "DollarSign": return <DollarSign size={size} color={color} />;
+      case "ShoppingBag": return <ShoppingBag size={size} color={color} />;
+      case "ChevronLeft": return <ChevronLeft size={size} color={color} />;
+      case "ChevronRight": return <ChevronRight size={size} color={color} />;
+      default: return null;
     }
-  };
+  }, [isDark]);
 
   const styles = StyleSheet.create({
     container: {
@@ -423,9 +565,7 @@ const OrdersScreen = () => {
       fontSize: 11,
       color: isDark ? "#aaaaaa" : "#6b4f42",
       fontWeight: "600",
-      backgroundColor: isDark
-        ? "rgba(255, 255, 255, 0.1)"
-        : "rgba(255, 255, 255, 0.2)",
+      backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)",
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 10,
@@ -696,15 +836,52 @@ const OrdersScreen = () => {
       fontSize: 15,
       letterSpacing: 0.3,
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      minHeight: 200,
+    },
+    paginationContainer: {
+      flexDirection: isRTL ? "row-reverse" : "row",
+      justifyContent: "center",
+      alignItems: "center",
+      marginVertical: 20,
+      gap: 16,
+    },
+    paginationButton: {
+      backgroundColor: isDark ? "#4d4d4d" : "#6d4c41",
+      padding: 12,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      elevation: 4,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    paginationButtonDisabled: {
+      backgroundColor: isDark ? "#2d2d2d" : "#e5d4c0",
+      opacity: 0.5,
+    },
+    paginationButtonText: {
+      color: "#fff",
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    paginationText: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: isDark ? "#ffffff" : "#4e342e",
+    },
   });
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t("worker.orders")}</Text>
-        <Text style={styles.headerSubtitle}>
-          {t("worker.manageAndTrackOrders")}
-        </Text>
+        <Text style={styles.headerSubtitle}>{t("worker.manageAndTrackOrders")}</Text>
       </View>
 
       <ScrollView
@@ -713,7 +890,7 @@ const OrdersScreen = () => {
         refreshControl={
           <RefreshControl
             refreshing={loading}
-            onRefresh={fetchOrders}
+            onRefresh={() => fetchOrders(1)} // إعادة تحميل من الصفحة الأولى
             tintColor={isDark ? "#ffffff" : "#8d6e63"}
             colors={[isDark ? "#ffffff" : "#8d6e63"]}
           />
@@ -725,412 +902,175 @@ const OrdersScreen = () => {
           </View>
         )}
 
-        {/* اجمالي الطلبات و اجمالي الايرادات */}
-        <View style={styles.statsContainer}>
-          <View style={styles.card}>
-            <Text style={styles.cardValue}>{orders.length}</Text>
-            <Text style={styles.cardLabel}>{t("worker.totalOrders")}</Text>
+        {(loading || orders.length === 0) && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={isDark ? "#ffffff" : "#8d6e63"} />
           </View>
-          <View style={styles.card}>
-            <Text
-              style={[
-                styles.cardValue,
-                { color: isDark ? "#cccccc" : "#6d4c41" },
-              ]}
-            >
-              ${getTotalRevenue().toFixed(2)}
-            </Text>
-            <Text style={styles.cardLabel}>{t("worker.totalRevenue")}</Text>
-          </View>
-        </View>
+        )}
 
-        {/* search box */}
-        <View style={styles.section}>
-          <View style={styles.inputContainer}>
-            {renderIcon("Search", 20, isDark ? "#ffffff" : "#6b4f42")}
-            <TextInput
-              style={styles.textInput}
-              placeholder={t("worker.searchOrdersByCustomer")}
-              placeholderTextColor={isDark ? "#aaaaaa" : "#9CA3AF"}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-        </View>
-
-        {/* قسم الفلترة السريعة */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.inputContainer}
-            onPress={toggleFilter}
-          >
-            <Text style={styles.textInput}>{t("worker.filterOptions")}</Text>
-          </TouchableOpacity>
-
-          {filterExpanded && (
-            <View style={{ marginTop: 12 }}>
-              {/* // فیلتر حسب الوضع */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  {t("worker.filterByStatus")}
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  inverted={isRTL}
-                  contentContainerStyle={
-                    isRTL ? { flexDirection: "row-reverse" } : {}
-                  }
-                >
-                  <View style={styles.filterRow}>
-                    {statuses.map((status) => (
-                      <TouchableOpacity
-                        key={status.key}
-                        onPress={() => setSelectedStatus(status.key)}
-                        style={[
-                          styles.statusButton,
-                          selectedStatus === status.key &&
-                            styles.statusButtonSelected,
-                        ]}
-                      >
-                        <View style={styles.statusIcon}>
-                          {renderIcon(
-                            status.icon,
-                            20,
-                            selectedStatus === status.key
-                              ? "#fff"
-                              : isDark
-                                ? "#ffffff"
-                                : "#4e342e"
-                          )}
-                        </View>
-                        <Text
-                          style={[
-                            styles.statusLabel,
-                            selectedStatus === status.key &&
-                              styles.statusLabelSelected,
-                          ]}
-                        >
-                          {status.label}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.statusCount,
-                            selectedStatus === status.key &&
-                              styles.statusCountSelected,
-                          ]}
-                        >
-                          {getOrderCount(status.key)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
+        {!loading && orders.length > 0 && (
+          <>
+            {/* اجمالي الطلبات و اجمالي الايرادات */}
+            <View style={styles.statsContainer}>
+              <View style={styles.card}>
+                <Text style={styles.cardValue}>{orders.length}</Text>
+                <Text style={styles.cardLabel}>{t("worker.totalOrders")}</Text>
               </View>
-
-              {/* // فیلتر حسب طريقة الدفع */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  {t("worker.filterByPayment")}
+              <View style={styles.card}>
+                <Text style={[styles.cardValue, { color: isDark ? "#cccccc" : "#6d4c41" }]}>
+                  ${getTotalRevenue().toFixed(2)}
                 </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  inverted={isRTL}
-                  contentContainerStyle={
-                    isRTL ? { flexDirection: "row-reverse" } : {}
-                  }
-                >
-                  <View style={styles.filterRow}>
-                    {paymentMethods.map((method) => (
-                      <TouchableOpacity
-                        key={method.key}
-                        onPress={() => setSelectedPaymentMethod(method.key)}
-                        style={[
-                          styles.statusButton,
-                          selectedPaymentMethod === method.key &&
-                            styles.statusButtonSelected,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.statusLabel,
-                            selectedPaymentMethod === method.key &&
-                              styles.statusLabelSelected,
-                          ]}
-                        >
-                          {method.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-
-              {/* // فلتر حسب الاقدميه */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t("worker.sortby")}</Text>
-                <View style={styles.sortContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.sortButton,
-                      sort === "newest" && styles.sortButtonSelected,
-                    ]}
-                    onPress={() => setSort("newest")}
-                  >
-                    <Text
-                      style={[
-                        styles.sortButtonText,
-                        sort === "newest" && styles.sortButtonTextSelected,
-                      ]}
-                    >
-                      {t("worker.sortNewest")}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.sortButton,
-                      sort === "oldest" && styles.sortButtonSelected,
-                    ]}
-                    onPress={() => setSort("oldest")}
-                  >
-                    <Text
-                      style={[
-                        styles.sortButtonText,
-                        sort === "oldest" && styles.sortButtonTextSelected,
-                      ]}
-                    >
-                      {t("worker.sortOldest")}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.cardLabel}>{t("worker.totalRevenue")}</Text>
               </View>
             </View>
-          )}
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {t("worker.orders")} ({sortedOrders.length})
-          </Text>
-          <View style={styles.ordersContainer}>
-            {sortedOrders.map((order) => {
-              const isExpanded = expandedOrderId === order.id;
-              const statusStyle = getStatusColor(order.status);
+            {/* search box */}
+            <View style={styles.section}>
+              <View style={styles.inputContainer}>
+                {renderIcon("Search", 20, isDark ? "#ffffff" : "#6b4f42")}
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={t("worker.searchOrdersByCustomer")}
+                  placeholderTextColor={isDark ? "#aaaaaa" : "#9CA3AF"}
+                  value={tempSearchQuery}
+                  onChangeText={handleSearchChange}
+                />
+              </View>
+            </View>
 
-              return (
-                <TouchableOpacity
-                  key={order.id}
-                  onPress={() =>
-                    setExpandedOrderId(isExpanded ? null : order.id)
-                  }
-                  style={styles.orderCard}
-                  activeOpacity={0.8}
-                >
-                  {/* ===== رأس الطلب ===== */}
-                  <View style={styles.orderHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.orderCustomer}>
-                        {order.customerName}
-                      </Text>
-                      <Text style={styles.orderId}>
-                        {t("worker.orderId")}: {order.id}
-                      </Text>
-                      <View
-                        style={{
-                          flexDirection: isRTL ? "row-reverse" : "row",
-                          alignItems: "center",
-                        }}
-                      >
-                        {renderIcon(
-                          "Phone",
-                          14,
-                          isDark ? "#aaaaaa" : "#6b4f42"
-                        )}
-                        <Text style={styles.orderPhone}>
-                          {order.customerPhone}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: statusStyle.backgroundColor },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.statusBadgeText,
-                          { color: statusStyle.textColor },
-                        ]}
-                      >
-                        {getStatusText(order.status)}
-                      </Text>
-                    </View>
-                  </View>
+            {/* قسم الفلترة السريعة */}
+            <View style={styles.section}>
+              <TouchableOpacity style={styles.inputContainer} onPress={() => setFilterExpanded(!filterExpanded)}>
+                <Text style={styles.textInput}>{t("worker.filterOptions")}</Text>
+              </TouchableOpacity>
 
-                  {/* ===== التفاصيل (تظهر فقط لو Expanded) ===== */}
-                  {isExpanded && (
-                    <>
-                      {/* المنتجات */}
-                      <View style={styles.orderItemsContainer}>
-                        <View
-                          style={{
-                            flexDirection: isRTL ? "row-reverse" : "row",
-                            alignItems: "center",
-                            marginBottom: 12,
-                          }}
-                        >
-                          {renderIcon(
-                            "ShoppingBag",
-                            28,                                 
-                            isDark ? "#ffffff" : "#4e342e"
-                          )}
-                          <Text style={styles.orderItemsTitle}>
-                            {t("worker.orderItemsTitle")}
-                          </Text>
-                        </View>
-                        {order.items?.map((item, idx) => (
+              {filterExpanded && (
+                <View style={{ marginTop: 12 }}>
+                  {/* فیلتر حسب الوضع */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t("worker.filterByStatus")}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} inverted={isRTL} contentContainerStyle={isRTL ? { flexDirection: "row-reverse" } : {}}>
+                      <View style={styles.filterRow}>
+                        {statuses.map((status) => (
                           <TouchableOpacity
-                            key={idx}
-                            style={styles.orderItemRow}
-                            onPress={() => viewProductDetails(item)}
+                            key={status.key}
+                            onPress={() => setSelectedStatus(status.key)}
+                            style={[styles.statusButton, selectedStatus === status.key && styles.statusButtonSelected]}
                           >
-                            <Text style={styles.orderItemName}>
-                              {item.quantity}x {item.name}
+                            <View style={styles.statusIcon}>
+                              {renderIcon(status.icon, 20, selectedStatus === status.key ? "#fff" : isDark ? "#ffffff" : "#4e342e")}
+                            </View>
+                            <Text style={[styles.statusLabel, selectedStatus === status.key && styles.statusLabelSelected]}>
+                              {status.label}
                             </Text>
-                            <Text style={styles.orderItemPrice}>
-                              ${(item.price ?? 0).toFixed(2)}
+                            <Text style={[styles.statusCount, selectedStatus === status.key && styles.statusCountSelected]}>
+                              {getOrderCount(status.key)}
                             </Text>
                           </TouchableOpacity>
                         ))}
                       </View>
+                    </ScrollView>
+                  </View>
 
-                      {/* التفاصيل العامة */}
-                      <View style={styles.orderDetailsContainer}>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>
-                            {t("worker.orderTime")}
-                          </Text>
-                          <Text style={styles.detailValue}>
-                            {formatTime(order.time)}
-                          </Text>
-                        </View>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>               
-                            {t("worker.estimatedReady")}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.detailValue,
-                              { color: isDark ? "#cccccc" : "#6d4c41" },
-                            ]}
-                          >
-                            {order.estimatedTime}
-                          </Text>
-                        </View>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>
-                            {t("worker.timeRemaining")}
-                          </Text> 
-                          <Text style={styles.detailValue}>
-                            {getRemainingTime(order.estimatedTime)}           
-                          </Text>
-                        </View> 
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>
-                            {t("worker.payment")}
-                          </Text>
-                          <Text style={styles.detailValue}>
-                            {getTranslatedPaymentMethod(order.paymentMethod)}
-                          </Text>
-                        </View>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.totalLabel}>
-                            {t("common.total")}:
-                          </Text>
-                          <Text style={styles.totalValue}>
-                            ${(order.total ?? 0).toFixed(2)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* تعليمات خاصة */}
-                      {order.specialInstructions ? (
-                        <View style={styles.instructionsContainer}>
-                          <View
-                            style={{
-                              flexDirection: isRTL ? "row-reverse" : "row",
-                              alignItems: "center",
-                              marginBottom: 8,
-                            }}
-                          >
-                            {renderIcon(
-                              "FileText",
-                              16,
-                              isDark ? "#ffffff" : "#4e342e"
-                            )}
-                            <Text style={styles.instructionsTitle}>
-                              {t("worker.specialInstructions")}:
-                            </Text>
-                          </View>
-                          <Text style={styles.instructionsText}>
-                            {order.specialInstructions}
-                          </Text>
-                        </View>
-                      ) : null}
-
-                      {/* أزرار العمليات */}
-                      {order.status !== "completed" && (
-                        <View style={styles.actionsRow}>
-                          {order.status === "pending" && (
-                            <TouchableOpacity
-                              style={styles.startButton}
-                              onPress={() => startOrder(order.id)}
-                            >
-                              {renderIcon("Play", 16, "#fff")}
-                              <Text style={styles.actionButtonText}>
-                                {t("worker.startOrderButton")}
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                          {order.status === "in-progress" && (
-                            <TouchableOpacity
-                              style={styles.completeButton}
-                              onPress={() => completeOrder(order.id)}
-                            >
-                              {renderIcon("CheckCircle", 16, "#fff")}
-                              <Text style={styles.actionButtonText}>
-                                {t("worker.completeOrderButton")}
-                              </Text>
-                            </TouchableOpacity>
-                          )}
+                  {/* فیلتر حسب طريقة الدفع */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t("worker.filterByPayment")}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} inverted={isRTL} contentContainerStyle={isRTL ? { flexDirection: "row-reverse" } : {}}>
+                      <View style={styles.filterRow}>
+                        {paymentMethods.map((method) => (
                           <TouchableOpacity
-                            style={styles.detailsButton}
-                            onPress={() => viewDetails(order)}
+                            key={method.key}
+                            onPress={() => setSelectedPaymentMethod(method.key)}
+                            style={[styles.statusButton, selectedPaymentMethod === method.key && styles.statusButtonSelected]}
                           >
-                            {renderIcon(
-                              "Eye",
-                              16,
-                              isDark ? "#ffffff" : "#4e342e"
-                            )}
-                            <Text style={styles.detailsButtonText}>
-                              {t("worker.detailsButton")}
+                            <Text style={[styles.statusLabel, selectedPaymentMethod === method.key && styles.statusLabelSelected]}>
+                              {method.label}
                             </Text>
                           </TouchableOpacity>
-                        </View>
-                      )}
-                    </>
-                  )}
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </View>
+
+                  {/* فلتر حسب الاقدميه */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t("worker.sortby")}</Text>
+                    <View style={styles.sortContainer}>
+                      <TouchableOpacity style={[styles.sortButton, sort === "newest" && styles.sortButtonSelected]} onPress={() => setSort("newest")}>
+                        <Text style={[styles.sortButtonText, sort === "newest" && styles.sortButtonTextSelected]}>
+                          {t("worker.sortNewest")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.sortButton, sort === "oldest" && styles.sortButtonSelected]} onPress={() => setSort("oldest")}>
+                        <Text style={[styles.sortButtonText, sort === "oldest" && styles.sortButtonTextSelected]}>
+                          {t("worker.sortOldest")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t("worker.orders")} ({sortedOrders.length})</Text>
+              <View style={styles.ordersContainer}>
+                {sortedOrders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    isExpanded={expandedOrderId === order.id}
+                    toggleExpand={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                    styles={styles}
+                    isDark={isDark}
+                    isRTL={isRTL}
+                    t={t}
+                    getStatusColor={getStatusColor}
+                    getStatusText={getStatusText}
+                    renderIcon={renderIcon}
+                    viewProductDetails={viewProductDetails}
+                    startOrder={startOrder}
+                    completeOrder={completeOrder}
+                    viewDetails={viewDetails}
+                    formatTime={formatTime}
+                    getRemainingTime={getRemainingTime}
+                    getTranslatedPaymentMethod={getTranslatedPaymentMethod}
+                  />
+                ))}
+              </View>
+
+              {/* أزرار الـ Pagination */}
+              <View style={styles.paginationContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.paginationButton,
+                    currentPage === 1 && styles.paginationButtonDisabled,
+                  ]}
+                  onPress={handlePreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  {renderIcon("ChevronLeft", 20, "#fff")}
                 </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+                <Text style={styles.paginationText}>
+                  {t("worker.page")} {currentPage} {t("worker.of")} {totalPages}
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.paginationButton,
+                    currentPage === totalPages && styles.paginationButtonDisabled,
+                  ]}
+                  onPress={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  {renderIcon("ChevronRight", 20, "#fff")}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
 };
 
 export default OrdersScreen;
-
