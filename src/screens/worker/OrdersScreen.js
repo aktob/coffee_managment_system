@@ -157,9 +157,6 @@ const OrdersScreen = () => {
     );
   };
 
-  const viewDetails = (order) => {
-    navigation.navigate("OrderDetailsScreen", { order });
-  };
 
   const viewProductDetails = (item) => {
     Alert.alert(item.name, item.description || t("worker.noDescription"));
@@ -1105,19 +1102,6 @@ const OrdersScreen = () => {
                               </Text>
                             </TouchableOpacity>
                           )}
-                          <TouchableOpacity
-                            style={styles.detailsButton}
-                            onPress={() => viewDetails(order)}
-                          >
-                            {renderIcon(
-                              "Eye",
-                              16,
-                              isDark ? "#ffffff" : "#4e342e"
-                            )}
-                            <Text style={styles.detailsButtonText}>
-                              {t("worker.detailsButton")}
-                            </Text>
-                          </TouchableOpacity>
                         </View>
                       )}
                     </>
