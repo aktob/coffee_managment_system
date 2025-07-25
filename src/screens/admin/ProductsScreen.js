@@ -84,24 +84,31 @@ const ProductsScreen = () => {
           throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
         }
 
-        const response = await fetch(`${BASE_URL}/admin/products?page=${currentPage}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        });
+        const response = await fetch(
+          `${BASE_URL}/admin/products?page=${currentPage}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+          }
+        );
 
         console.log("Fetch Products API Response Status:", response.status);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           if (response.status === 401) {
-            throw new Error(t("admin.unauthorized") || "التوكين غير صالح أو منتهي");
+            throw new Error(
+              t("admin.unauthorized") || "التوكين غير صالح أو منتهي"
+            );
           }
           throw new Error(
-            errorData.message || t("admin.fetchProductsError") || `فشل في جلب المنتجات (Status: ${response.status})`
+            errorData.message ||
+              t("admin.fetchProductsError") ||
+              `فشل في جلب المنتجات (Status: ${response.status})`
           );
         }
 
@@ -112,7 +119,13 @@ const ProductsScreen = () => {
           id: product.id || Date.now(),
           name: product.name || "منتج بدون اسم",
           category_id: product.category_id || "1",
-          category: product.category?.name || (product.category_id === "1" ? "مشروب" : product.category_id === "2" ? "بن" : "طعام"),
+          category:
+            product.category?.name ||
+            (product.category_id === "1"
+              ? "مشروب"
+              : product.category_id === "2"
+                ? "بن"
+                : "طعام"),
           price: parseFloat(product.price) || 0,
           description: product.description || product.name || "لا يوجد وصف",
           stock: product.stock || "0",
@@ -121,7 +134,11 @@ const ProductsScreen = () => {
           active: product.active || false,
           rating: product.rating || 0,
           sales: product.sales || 0,
-          image: product.image_url || (product.category_id === "1" || product.category_id === "2" ? "☕" : "🥐"),
+          image:
+            product.image_url ||
+            (product.category_id === "1" || product.category_id === "2"
+              ? "☕"
+              : "🥐"),
         }));
 
         setProducts(mappedProducts);
@@ -141,7 +158,8 @@ const ProductsScreen = () => {
 
   const filteredProducts = products.filter(
     (product) =>
-      (selectedCategory === "all" || product.category_id === selectedCategory) &&
+      (selectedCategory === "all" ||
+        product.category_id === selectedCategory) &&
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -208,11 +226,15 @@ const ProductsScreen = () => {
       hasError = true;
     }
     if (!price || isNaN(price) || parseFloat(price) <= 0) {
-      setPriceError(t("admin.priceInvalid") || "السعر يجب أن يكون رقمًا أكبر من 0");
+      setPriceError(
+        t("admin.priceInvalid") || "السعر يجب أن يكون رقمًا أكبر من 0"
+      );
       hasError = true;
     }
     if (!stock || isNaN(stock) || parseFloat(stock) < 0) {
-      setStockError(t("admin.stockInvalid") || "المخزون يجب أن يكون رقمًا غير سالب");
+      setStockError(
+        t("admin.stockInvalid") || "المخزون يجب أن يكون رقمًا غير سالب"
+      );
       hasError = true;
     }
     if (!barcode.trim()) {
@@ -283,7 +305,9 @@ const ProductsScreen = () => {
           throw new Error(`خطأ 422: ${errorDetails}`);
         }
         throw new Error(
-          result.message || t("admin.saveProductError") || `فشل في حفظ المنتج (Status: ${response.status})`
+          result.message ||
+            t("admin.saveProductError") ||
+            `فشل في حفظ المنتج (Status: ${response.status})`
         );
       }
 
@@ -295,7 +319,12 @@ const ProductsScreen = () => {
                   ...item,
                   name: name.trim(),
                   category_id: categoryId,
-                  category: categoryId === "1" ? "مشروب" : categoryId === "2" ? "بن" : category,
+                  category:
+                    categoryId === "1"
+                      ? "مشروب"
+                      : categoryId === "2"
+                        ? "بن"
+                        : category,
                   price: parseFloat(price),
                   description: description.trim() || name.trim(),
                   stock: parseFloat(stock).toFixed(2),
@@ -317,7 +346,12 @@ const ProductsScreen = () => {
             id: result.id || Date.now(),
             name: name.trim(),
             category_id: categoryId,
-            category: categoryId === "1" ? "مشروب" : categoryId === "2" ? "بن" : category,
+            category:
+              categoryId === "1"
+                ? "مشروب"
+                : categoryId === "2"
+                  ? "بن"
+                  : category,
             price: parseFloat(price),
             description: description.trim() || name.trim(),
             stock: parseFloat(stock).toFixed(2),
@@ -357,7 +391,13 @@ const ProductsScreen = () => {
   const handleEditProduct = (product) => {
     console.log("Edit Product button pressed for:", product.id);
     setName(product.name);
-    setCategory(product.category_id === "1" ? "hot" : product.category_id === "2" ? "بن" : product.category);
+    setCategory(
+      product.category_id === "1"
+        ? "hot"
+        : product.category_id === "2"
+          ? "بن"
+          : product.category
+    );
     setPrice(product.price.toString());
     setDescription(product.description);
     setStock(product.stock.toString());
@@ -386,25 +426,35 @@ const ProductsScreen = () => {
               const token = await AsyncStorage.getItem("authToken");
               console.log("Retrieved Token for Delete Product:", token);
               if (!token) {
-                throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+                throw new Error(
+                  t("admin.noToken") || "لم يتم العثور على التوكين"
+                );
               }
 
-              const response = await fetch(`${BASE_URL}/admin/products/${product.id}`, {
-                method: "DELETE",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                },
-              });
+              const response = await fetch(
+                `${BASE_URL}/admin/products/${product.id}`,
+                {
+                  method: "DELETE",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                  },
+                }
+              );
 
-              console.log("Delete Product API Response Status:", response.status);
+              console.log(
+                "Delete Product API Response Status:",
+                response.status
+              );
               const result = await response.json().catch(() => ({}));
               console.log("Delete Product API Response:", result);
 
               if (!response.ok) {
                 throw new Error(
-                  result.message || t("admin.deleteProductError") || `فشل في حذف المنتج (Status: ${response.status})`
+                  result.message ||
+                    t("admin.deleteProductError") ||
+                    `فشل في حذف المنتج (Status: ${response.status})`
                 );
               }
 
@@ -415,7 +465,10 @@ const ProductsScreen = () => {
               );
             } catch (err) {
               console.error("Error deleting product:", err.message);
-              Alert.alert(t("common.error") || "خطأ", err.message || t("admin.deleteProductError"));
+              Alert.alert(
+                t("common.error") || "خطأ",
+                err.message || t("admin.deleteProductError")
+              );
             }
           },
         },
@@ -451,18 +504,25 @@ const ProductsScreen = () => {
 
       if (!response.ok) {
         throw new Error(
-          result.message || t("admin.updateStockError") || `فشل في تحديث المخزون (Status: ${response.status})`
+          result.message ||
+            t("admin.updateStockError") ||
+            `فشل في تحديث المخزون (Status: ${response.status})`
         );
       }
 
       setProducts(
         products.map((p) =>
-          p.id === product.id ? { ...p, stock: newStock, active: parseFloat(newStock) > 0 } : p
+          p.id === product.id
+            ? { ...p, stock: newStock, active: parseFloat(newStock) > 0 }
+            : p
         )
       );
     } catch (err) {
       console.error("Error toggling availability:", err.message);
-      Alert.alert(t("common.error") || "خطأ", err.message || t("admin.updateStockError"));
+      Alert.alert(
+        t("common.error") || "خطأ",
+        err.message || t("admin.updateStockError")
+      );
     }
   };
 
@@ -472,169 +532,196 @@ const ProductsScreen = () => {
     }
   };
 
-const renderProductCard = (product) => {
-  const isImageUrl = product.image?.startsWith("http");
-  const isAvailable = product.active && parseFloat(product.stock) > 0;
+  const renderProductCard = (product) => {
+    const isImageUrl = product.image?.startsWith("http");
+    const isAvailable = product.active && parseFloat(product.stock) > 0;
 
-  return (
-    <View>
-      {viewMode === "grid" ? (
-        <TouchableOpacity key={product.id} style={styles.gridCard}>
-          <View style={styles.gridCardHeader}>
-            {isImageUrl ? (
-              <Image
-                source={{ uri: product.image }}
-                style={{ width: 32, height: 32 }}
-                resizeMode="contain"
-              />
-            ) : (
-              <Text style={styles.productEmoji}>
-                {product.category_id === "1" || product.category_id === "2" ? "☕" : "🥐"}
-              </Text>
-            )}
-            <View style={styles.gridCardBadge}>
-              <Text style={styles.gridCardBadgeText}>
-                {isAvailable
-                  ? t("admin.available") || "متوفر"
-                  : t("admin.unavailable") || "غير متوفر"}
-              </Text>
+    return (
+      <View>
+        {viewMode === "grid" ? (
+          <TouchableOpacity key={product.id} style={styles.gridCard}>
+            <View style={styles.gridCardHeader}>
+              {isImageUrl ? (
+                <Image
+                  source={{ uri: product.image }}
+                  style={{ width: 32, height: 32 }}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text style={styles.productEmoji}>
+                  {product.category_id === "1" || product.category_id === "2"
+                    ? "☕"
+                    : "🥐"}
+                </Text>
+              )}
+              <View
+                style={[
+                  styles.gridCardBadge,
+                  isAvailable
+                    ? styles.gridCardBadgeAvailable
+                    : styles.gridCardBadgeUnavailable,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.gridCardBadgeText,
+                    isAvailable
+                      ? styles.gridCardBadgeTextAvailable
+                      : styles.gridCardBadgeTextUnavailable,
+                  ]}
+                >
+                  {isAvailable
+                    ? t("admin.available") || "متوفر"
+                    : t("admin.unavailable") || "غير متوفر"}
+                </Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.gridCardContent}>
-            <Text style={styles.gridCardName}>{product.name}</Text>
-            <Text style={styles.gridCardDescription} numberOfLines={2}>
-              {product.description}
-            </Text>
-            <View style={styles.gridCardPrice}>
-              <Text style={styles.gridCardPriceText}>
-                ${parseFloat(product.price).toFixed(2)}
+            <View style={styles.gridCardContent}>
+              <Text style={styles.gridCardName}>{product.name}</Text>
+              <Text style={styles.gridCardDescription} numberOfLines={2}>
+                {product.description}
               </Text>
+              <View style={styles.gridCardPrice}>
+                <Text style={styles.gridCardPriceText}>
+                  ${parseFloat(product.price).toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.gridCardStats}>
+                <View style={styles.gridCardStat}>
+                  <Text style={styles.gridCardStatLabel}>
+                    {t("admin.stock") || "المخزون"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.gridCardStatValue,
+                      parseFloat(product.stock) === 0 && styles.stockEmptyText,
+                    ]}
+                  >
+                    {product.stock}
+                  </Text>
+                </View>
+                <View style={styles.gridCardStat}>
+                  <Text style={styles.gridCardStatLabel}>
+                    {t("admin.rating") || "التقييم"}
+                  </Text>
+                  <Text style={styles.gridCardStatValue}>{product.rating}</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.gridCardStats}>
-              <View style={styles.gridCardStat}>
-                <Text style={styles.gridCardStatLabel}>
+            <View style={styles.gridCardActions}>
+              <TouchableOpacity
+                style={[styles.gridActionButton, styles.editGridButton]}
+                onPress={() => handleEditProduct(product)}
+              >
+                {renderIcon("Edit", 16, "#fff")}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.gridActionButton, styles.deleteGridButton]}
+                onPress={() => handleDeleteProduct(product)}
+              >
+                {renderIcon("Trash2", 16, "#fff")}
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View key={product.id} style={styles.listCard}>
+            <View style={styles.listCardHeader}>
+              <View style={styles.listCardLeft}>
+                {isImageUrl ? (
+                  <Image
+                    source={{ uri: product.image }}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      marginRight: isRTL ? 0 : 16,
+                      marginLeft: isRTL ? 16 : 0,
+                    }}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text style={styles.listProductEmoji}>
+                    {product.category_id === "1" || product.category_id === "2"
+                      ? "☕"
+                      : "🥐"}
+                  </Text>
+                )}
+                <View style={styles.listCardInfo}>
+                  <Text style={styles.listCardName}>{product.name}</Text>
+                  <Text style={styles.listCardDescription}>
+                    {product.description}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.listCardRight}>
+                <View style={styles.listCardPrice}>
+                  <Text style={styles.listCardPriceText}>
+                    ${parseFloat(product.price).toFixed(2)}
+                  </Text>
+                </View>
+                <Switch
+                  value={isAvailable}
+                  onValueChange={() => handleToggleAvailability(product)}
+                  trackColor={{ false: "#e0e0e0", true: "#4CAF50" }}
+                  thumbColor={isAvailable ? "#fff" : "#f4f3f4"}
+                />
+              </View>
+            </View>
+            <View style={styles.listCardDetails}>
+              <View style={styles.listCardStat}>
+                <Text style={styles.listCardStatLabel}>
                   {t("admin.stock") || "المخزون"}
                 </Text>
                 <Text
                   style={[
-                    styles.gridCardStatValue,
+                    styles.listCardStatValue,
                     parseFloat(product.stock) === 0 && styles.stockEmptyText,
                   ]}
                 >
-                  {product.stock}
+                  {product.stock} {t("admin.units") || "وحدة"}
                 </Text>
               </View>
-              <View style={styles.gridCardStat}>
-                <Text style={styles.gridCardStatLabel}>
+              <View style={styles.listCardStat}>
+                <Text style={styles.listCardStatLabel}>
                   {t("admin.rating") || "التقييم"}
                 </Text>
-                <Text style={styles.gridCardStatValue}>{product.rating}</Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.gridCardActions}>
-            <TouchableOpacity
-              style={[styles.gridActionButton, styles.editGridButton]}
-              onPress={() => handleEditProduct(product)}
-            >
-              {renderIcon("Edit", 16, "#fff")}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.gridActionButton, styles.deleteGridButton]}
-              onPress={() => handleDeleteProduct(product)}
-            >
-              {renderIcon("Trash2", 16, "#fff")}
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      ) : (
-        <View key={product.id} style={styles.listCard}>
-          <View style={styles.listCardHeader}>
-            <View style={styles.listCardLeft}>
-              {isImageUrl ? (
-                <Image
-                  source={{ uri: product.image }}
-                  style={{ width: 40, height: 40, marginRight: isRTL ? 0 : 16, marginLeft: isRTL ? 16 : 0 }}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Text style={styles.listProductEmoji}>
-                  {product.category_id === "1" || product.category_id === "2" ? "☕" : "🥐"}
-                </Text>
-              )}
-              <View style={styles.listCardInfo}>
-                <Text style={styles.listCardName}>{product.name}</Text>
-                <Text style={styles.listCardDescription}>{product.description}</Text>
-              </View>
-            </View>
-            <View style={styles.listCardRight}>
-              <View style={styles.listCardPrice}>
-                <Text style={styles.listCardPriceText}>
-                  ${parseFloat(product.price).toFixed(2)}
+                <Text style={styles.listCardStatValue}>
+                  {product.rating}/5.0
                 </Text>
               </View>
-              <Switch
-                value={isAvailable}
-                onValueChange={() => handleToggleAvailability(product)}
-                trackColor={{ false: "#e0e0e0", true: "#4CAF50" }}
-                thumbColor={isAvailable ? "#fff" : "#f4f3f4"}
-              />
+              <View style={styles.listCardStat}>
+                <Text style={styles.listCardStatLabel}>
+                  {t("admin.sales") || "المبيعات"}
+                </Text>
+                <Text style={styles.listCardStatValue}>
+                  {product.sales} {t("admin.orders") || "طلب"}
+                </Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.listCardDetails}>
-            <View style={styles.listCardStat}>
-              <Text style={styles.listCardStatLabel}>
-                {t("admin.stock") || "المخزون"}
-              </Text>
-              <Text
-                style={[
-                  styles.listCardStatValue,
-                  parseFloat(product.stock) === 0 && styles.stockEmptyText,
-                ]}
+            <View style={styles.listCardActions}>
+              <TouchableOpacity
+                style={[styles.listActionButton, styles.editListButton]}
+                onPress={() => handleEditProduct(product)}
               >
-                {product.stock} {t("admin.units") || "وحدة"}
-              </Text>
-            </View>
-            <View style={styles.listCardStat}>
-              <Text style={styles.listCardStatLabel}>
-                {t("admin.rating") || "التقييم"}
-              </Text>
-              <Text style={styles.listCardStatValue}>{product.rating}/5.0</Text>
-            </View>
-            <View style={styles.listCardStat}>
-              <Text style={styles.listCardStatLabel}>
-                {t("admin.sales") || "المبيعات"}
-              </Text>
-              <Text style={styles.listCardStatValue}>
-                {product.sales} {t("admin.orders") || "طلب"}
-              </Text>
+                {renderIcon("Edit", 16, "#fff")}
+                <Text style={[styles.listActionText, styles.editListText]}>
+                  {t("common.edit") || "تعديل"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.listActionButton, styles.deleteListButton]}
+                onPress={() => handleDeleteProduct(product)}
+              >
+                {renderIcon("Trash2", 16, "#fff")}
+                <Text style={[styles.listActionText, styles.deleteListText]}>
+                  {t("common.delete") || "حذف"}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.listCardActions}>
-            <TouchableOpacity
-              style={[styles.listActionButton, styles.editListButton]}
-              onPress={() => handleEditProduct(product)}
-            >
-              {renderIcon("Edit", 16, "#fff")}
-              <Text style={[styles.listActionText, styles.editListText]}>
-                {t("common.edit") || "تعديل"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.listActionButton, styles.deleteListButton]}
-              onPress={() => handleDeleteProduct(product)}
-            >
-              {renderIcon("Trash2", 16, "#fff")}
-              <Text style={[styles.listActionText, styles.deleteListText]}>
-                {t("common.delete") || "حذف"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </View>
-  );
-};
+        )}
+      </View>
+    );
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -829,16 +916,21 @@ const renderProductCard = (product) => {
     productEmoji: {
       fontSize: 32,
     },
-    gridCardBadge: {
+    gridCardBadgeAvailable: {
       backgroundColor: "#e8f5e8",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 10,
+      padding: 12,
+      borderRadius: 5,
     },
-    gridCardBadgeText: {
-      fontSize: 10,
-      fontWeight: "600",
+    gridCardBadgeUnavailable: {
+      backgroundColor: "#fdecea",
+      padding: 12,
+      borderRadius: 5,
+    },
+    gridCardBadgeTextAvailable: {
       color: "#27ae60",
+    },
+    gridCardBadgeTextUnavailable: {
+      color: "#c0392b",
     },
     gridCardContent: {
       flex: 1,
@@ -1077,7 +1169,10 @@ const renderProductCard = (product) => {
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
             {renderIcon("Search", 20, "#6b4f42")}
@@ -1100,20 +1195,32 @@ const renderProductCard = (product) => {
               <TouchableOpacity
                 style={[
                   styles.viewModeButton,
-                  viewMode === "grid" ? styles.viewModeButtonActive : styles.viewModeButtonInactive,
+                  viewMode === "grid"
+                    ? styles.viewModeButtonActive
+                    : styles.viewModeButtonInactive,
                 ]}
                 onPress={() => setViewMode("grid")}
               >
-                {renderIcon("Grid", 20, viewMode === "grid" ? "#fff" : "#7f8c8d")}
+                {renderIcon(
+                  "Grid",
+                  20,
+                  viewMode === "grid" ? "#fff" : "#7f8c8d"
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.viewModeButton,
-                  viewMode === "list" ? styles.viewModeButtonActive : styles.viewModeButtonInactive,
+                  viewMode === "list"
+                    ? styles.viewModeButtonActive
+                    : styles.viewModeButtonInactive,
                 ]}
                 onPress={() => setViewMode("list")}
               >
-                {renderIcon("List", 20, viewMode === "list" ? "#fff" : "#7f8c8d")}
+                {renderIcon(
+                  "List",
+                  20,
+                  viewMode === "list" ? "#fff" : "#7f8c8d"
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -1154,7 +1261,10 @@ const renderProductCard = (product) => {
           </ScrollView>
         </View>
 
-        <TouchableOpacity style={styles.addButton} onPress={() => setFormVisible(true)}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setFormVisible(true)}
+        >
           {renderIcon("Plus", 22, "#fff")}
           <Text style={styles.addButtonText}>
             {t("admin.addNewProduct") || "إضافة منتج جديد"}
@@ -1176,8 +1286,10 @@ const renderProductCard = (product) => {
             </View>
           ) : filteredProducts.length > 0 ? (
             viewMode === "grid" ? (
-              <View style={styles.gridContainer}>              
-                {filteredProducts.map(renderProductCard)}
+              <View style={styles.gridContainer}>
+                {filteredProducts.map((product) => (
+                  <View key={product.id}>{renderProductCard(product)}</View>
+                ))}
               </View>
             ) : (
               <View style={styles.listContainer}>
@@ -1207,7 +1319,8 @@ const renderProductCard = (product) => {
               {renderIcon("ChevronLeft", 20, "#fff")}
             </TouchableOpacity>
             <Text style={styles.pageInfo}>
-              {t("admin.page") || "الصفحة"} {currentPage} {t("admin.of") || "من"} {totalPages}
+              {t("worker.page") || "الصفحة"} {currentPage}{" "}
+              {t("worker.of") || "من"} {totalPages}
             </Text>
             <TouchableOpacity
               style={[
@@ -1238,7 +1351,9 @@ const renderProductCard = (product) => {
           }}
         >
           <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
-            {isEditing ? (t("admin.editProduct") || "تعديل المنتج") : (t("admin.addNewProduct") || "إضافة منتج جديد")}
+            {isEditing
+              ? t("admin.editProduct") || "تعديل المنتج"
+              : t("admin.addNewProduct") || "إضافة منتج جديد"}
           </Text>
           <TextInput
             placeholder={t("admin.productName") || "اسم المنتج"}
@@ -1304,18 +1419,31 @@ const renderProductCard = (product) => {
             onChangeText={setDescription}
             style={styles.inputField}
           />
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 12,
+            }}
+          >
             <TouchableOpacity
               onPress={handleAddProduct}
               style={[styles.addButton, { flex: 1, marginRight: 6 }]}
             >
-              <Text style={styles.addButtonText}>{t("common.save") || "حفظ"}</Text>
+              <Text style={styles.addButtonText}>
+                {t("common.save") || "حفظ"}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setFormVisible(false)}
-              style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginLeft: 6 }]}
+              style={[
+                styles.addButton,
+                { flex: 1, backgroundColor: "#aaa", marginLeft: 6 },
+              ]}
             >
-              <Text style={styles.addButtonText}>{t("common.cancel") || "إلغاء"}</Text>
+              <Text style={styles.addButtonText}>
+                {t("common.cancel") || "إلغاء"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

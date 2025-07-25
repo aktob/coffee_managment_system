@@ -9,12 +9,12 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import {
   Coffee,
-  Sun,
   Snowflake,
   Utensils,
   Clock,
@@ -23,10 +23,15 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Minus,
+  ShoppingCart,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const { width } = Dimensions.get("window");
+
+const { width, height } = Dimensions.get("window");
 const BASE_URL = "http://api-coffee.m-zedan.com/api";
+
 // دالة debounce يدوية
 const debounce = (func, wait) => {
   let timeout;
@@ -35,13 +40,14 @@ const debounce = (func, wait) => {
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+
 const NewOrderScreen = () => {
   const { t } = useTranslation();
   const { currentLanguage } = useSelector((state) => state.language);
   const theme = useSelector((state) => state.theme.mode);
   const isDark = theme === "dark";
   const isRTL = currentLanguage === "ar";
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState("worker");
   const [cart, setCart] = useState([]);
   const [products, setProducts] = useState({ hot: [], cold: [], food: [] });
   const [loading, setLoading] = useState(true);
@@ -50,7 +56,9 @@ const NewOrderScreen = () => {
   const [tempSearchQuery, setTempSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isCartModalVisible, setIsCartModalVisible] = useState(false);
   const limit = 10; // عدد المنتجات في الصفحة
+
   // دالة debounced لتحديث query السيرش
   const debouncedSetSearchQuery = useCallback(
     debounce((value) => {
@@ -58,6 +66,7 @@ const NewOrderScreen = () => {
     }, 300),
     []
   );
+
   // تحديث tempSearchQuery مع كل تغيير في الـ input
   const handleSearchChange = useCallback(
     (text) => {
@@ -66,79 +75,125 @@ const NewOrderScreen = () => {
     },
     [debouncedSetSearchQuery]
   );
-  const fetchProducts = useCallback(async (page = 1) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = await AsyncStorage.getItem("authToken");
-      console.log("Retrieved Token:", token);
-      if (!token) {
-        throw new Error(t("worker.noToken"));
+
+  const fetchProducts = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        console.log("التوكن المسترد:", token);
+        if (!token) {
+          throw new Error(t("worker.noToken"));
+        }
+        const response = await fetch(
+          `${BASE_URL}/admin/products?page=${page}&limit=${limit}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error(`خطأ HTTP! الحالة: ${response.status}`);
+        }
+        const result = await response.json();
+        console.log("استجابة API المنتجات:", result);
+        if (result.data && Array.isArray(result.data)) {
+          const categorizedProducts = {
+            hot: result.data.filter((p) => p.category_id === "2"),
+            cold: result.data.filter((p) => p.category_id === "1"),
+            food: result.data.filter((p) => p.category_id === "3"),
+          };
+          setProducts(categorizedProducts);
+          setTotalPages(result.totalPages || Math.ceil(result.total / limit));
+        } else {
+          throw new Error("لم يتم العثور على بيانات المنتجات");
+        }
+      } catch (error) {
+        console.error("خطأ أثناء جلب المنتجات:", error.message);
+        setError(error.message);
+        Alert.alert(
+          t("worker.error"),
+          error.message || t("worker.fetchProductsFailed")
+        );
+      } finally {
+        setLoading(false);
       }
-      const response = await fetch(`${BASE_URL}/admin/products?page=${page}&limit=${limit}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      const result = await response.json();
-      console.log("Products API Response:", result);
-      if (result.data && Array.isArray(result.data)) {
-        const categorizedProducts = {
-          hot: result.data.filter((p) => p.category_id === "2"),
-          cold: result.data.filter((p) => p.category_id === "1"),
-          food: result.data.filter((p) => p.category_id === "3"), // افتراضي للـ food
-        };
-        setProducts(categorizedProducts);
-        setTotalPages(result.totalPages || Math.ceil(result.total / limit));
-      } else {
-        throw new Error("No products data found");
-      }
-    } catch (error) {
-      console.error("Error fetching products:", error.message);
-      setError(error.message);
-      Alert.alert(t("worker.error"), error.message || t("worker.fetchProductsFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, limit]);
+    },
+    [t, limit]
+  );
+
   useEffect(() => {
     fetchProducts(currentPage);
   }, [fetchProducts, currentPage]);
+
   const addToCart = (product) => {
+    const price = parseFloat(product.price) || 0;
+    const unit_type = price > 100 ? "grams" : "pieces";
+    const initialQuantity = unit_type === "grams" ? 100 : 1;
+
     const existingItem = cart.find((item) => item.id === product.id);
     if (existingItem) {
-      updateGrams(product.id, existingItem.grams + 100);
+      if (unit_type === "grams") {
+        updateGrams(product.id, existingItem.grams + 100);
+      } else {
+        updateGrams(product.id, existingItem.grams + 1);
+      }
     } else {
-      setCart([...cart, { ...product, grams: 100 }]);
+      setCart([
+        ...cart,
+        { ...product, grams: initialQuantity, unit_type },
+      ]);
     }
+    setIsCartModalVisible(true); // فتح المودال عند إضافة عنصر
   };
+
   const removeFromCart = (productId) => {
     setCart(cart.filter((item) => item.id !== productId));
   };
+
   const updateGrams = (productId, newGrams) => {
-    if (newGrams < 1) return;
+    const item = cart.find((item) => item.id === productId);
+    if (!item) return;
+
+    const parsedGrams = item.unit_type === "pieces" ? parseInt(newGrams) : parseFloat(newGrams);
+    if (isNaN(parsedGrams) || parsedGrams <= 0) {
+      Alert.alert(t("worker.error"), t("worker.invalidQuantity"));
+      return;
+    }
+    if (item.unit_type === "pieces" && !Number.isInteger(parsedGrams)) {
+      return; // منع إدخال أرقام غير صحيحة للمنتجات بالقطعة
+    }
+
     setCart(
       cart.map((item) =>
-        item.id === productId ? { ...item, grams: newGrams } : item
+        item.id === productId ? { ...item, grams: parsedGrams } : item
       )
     );
   };
+
   const getItemPrice = (item) => {
+    if (item.unit_type === "pieces") {
+      return item.grams * parseFloat(item.price);
+    }
     return (item.grams / 1000) * parseFloat(item.price);
   };
+
   const getTotal = () => {
     return cart.reduce((total, item) => total + getItemPrice(item), 0);
   };
+
   const getCartItemCount = () => {
     return cart.length;
   };
-  const getTranslatedProductName = (productName) => productName || "Unknown Item";
+
+  const getTranslatedProductName = (productName) =>
+    productName || "Unknown Item";
+
   const getTranslatedProductDescription = () => "";
-  const getTranslatedPopularity = () => "";
+
   const filteredProducts = useMemo(() => {
     const query = searchQuery.toLowerCase();
     return {
@@ -162,48 +217,71 @@ const NewOrderScreen = () => {
       ),
     };
   }, [products, searchQuery]);
-  const renderIcon = (iconName, size = 24, color = isDark ? "#ffffff" : "#4e342e") => {
+
+  const renderIcon = (
+    iconName,
+    size = 24,
+    color = isDark ? "#ffffff" : "#4e342e"
+  ) => {
     const icons = {
-      Sun: <Sun size={size} color={color} />,
+      Coffee: <Coffee size={size} color={color} />,
       Snowflake: <Snowflake size={size} color={color} />,
       Utensils: <Utensils size={size} color={color} />,
-      Coffee: <Coffee size={size} color={color} />,
+      Clock: <Clock size={size} color={color} />,
       X: <X size={size} color={color} />,
       Send: <Send size={size} color={color} />,
       Search: <Search size={size} color={color} />,
       ChevronLeft: <ChevronLeft size={size} color={color} />,
       ChevronRight: <ChevronRight size={size} color={color} />,
-      Plus: <Coffee size={size} color={color} />, // استخدام Coffee كبديل مؤقت لـ Plus
+      Plus: <Plus size={size} color={color} />,
+      Minus: <Minus size={size} color={color} />,
+      ShoppingCart: <ShoppingCart size={size} color={color} />,
     };
     return icons[iconName] || <Coffee size={size} color={color} />;
   };
+
   const placeOrder = async () => {
-    console.log("Place Order button pressed!");
+    console.log("بدء عملية إرسال الطلب...");
     if (!customerName || cart.length === 0) {
       Alert.alert(t("worker.error"), t("worker.enterCustomerAndItems"));
-      console.log("Validation Error:", { customerName, cartLength: cart.length });
+      console.log("خطأ في التحقق:", { customerName, cartLength: cart.length });
       return;
     }
+
+    const invalidItems = cart.filter((item) => item.grams <= 0);
+    if (invalidItems.length > 0) {
+      Alert.alert(t("worker.error"), t("worker.invalidQuantity"));
+      console.log("خطأ: كميات غير صالحة:", invalidItems);
+      return;
+    }
+
     const orderData = {
       customer_id: 10,
       branch_id: 1,
       user_id: 15,
       total_amount: getTotal().toFixed(2),
       payment_method: "cash",
+      order_status: "pending",
       items: cart.map((item) => ({
         product_id: item.id,
-        quantity: item.grams / 1000,
+        quantity: item.unit_type === "pieces" ? item.grams : item.grams / 1000,
         unit_price: parseFloat(item.price),
         subtotal: getItemPrice(item).toFixed(2),
+        unit_type: item.unit_type,
       })),
     };
-    console.log("Order Data being sent:", orderData);
+
+    console.log("بيانات الطلب المرسلة:", JSON.stringify(orderData, null, 2));
+
     try {
+      setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
-      console.log("Retrieved Token for Order:", token);
+      console.log("التوكن المسترد:", token);
+
       if (!token) {
         throw new Error(t("worker.noToken"));
       }
+
       const response = await fetch(`${BASE_URL}/admin/orders`, {
         method: "POST",
         headers: {
@@ -212,31 +290,46 @@ const NewOrderScreen = () => {
         },
         body: JSON.stringify(orderData),
       });
+
       const result = await response.json();
-      console.log("Order API Response:", result);
-      console.log("API Response Status:", response.status);
+      console.log("استجابة الـ API:", JSON.stringify(result, null, 2));
+      console.log("حالة الاستجابة:", response.status);
+
       if (response.ok) {
         Alert.alert(t("worker.success"), t("worker.orderPlaced"));
         setCart([]);
         setCustomerName("");
+        setIsCartModalVisible(false);
       } else {
-        throw new Error(result.message || `Error ${response.status}: Failed to place order`);
+        throw new Error(
+          result.error || `خطأ ${response.status}: فشل إرسال الطلب`
+        );
       }
     } catch (error) {
-      console.error("Error placing order:", error.message);
-      Alert.alert(t("worker.error"), error.message || t("worker.orderFailed"));
+      console.error("خطأ أثناء إرسال الطلب:", error.message);
+      Alert.alert(
+        t("worker.error"),
+        error.message.includes("SQLSTATE")
+          ? t("worker.backendError")
+          : error.message || t("worker.orderFailed")
+      );
+    } finally {
+      setLoading(false);
     }
   };
+
   const handlePreviousPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage((prev) => prev - 1);
     }
   }, [currentPage]);
+
   const handleNextPage = useCallback(() => {
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
     }
   }, [currentPage, totalPages]);
+
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: isDark ? "#1a1a1a" : "#f7f3ef" },
     header: {
@@ -272,7 +365,6 @@ const NewOrderScreen = () => {
       backgroundColor: isDark ? "#2d2d2d" : "#fffaf5",
       borderRadius: 20,
       padding: 16,
-      elevation: 4,
       borderWidth: 1,
       borderColor: isDark ? "#3d3d3d" : "#e5d4c0",
       flexDirection: isRTL ? "row-reverse" : "row",
@@ -291,13 +383,11 @@ const NewOrderScreen = () => {
       justifyContent: "space-between",
       gap: 12,
     },
-    // تم تصحيح السطر ده
-    productsContainerRTL: { flexDirection: 'row-reverse' },
+    productsContainerRTL: { flexDirection: "row-reverse" },
     productCard: {
       backgroundColor: isDark ? "#2d2d2d" : "#fffaf5",
       borderRadius: 16,
       padding: 16,
-      elevation: 3,
       borderWidth: 1,
       borderColor: isDark ? "#3d3d3d" : "#e5d4c0",
       width: (width - 48) / 2,
@@ -354,7 +444,6 @@ const NewOrderScreen = () => {
       flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
     },
-    // تم تصحيح السطر ده
     productTime: {
       fontSize: 11,
       color: isDark ? "#aaaaaa" : "#6b4f42",
@@ -368,22 +457,19 @@ const NewOrderScreen = () => {
       borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
-      elevation: 3,
     },
-    cartSection: { marginBottom: 32 },
-    cartHeader: {
+    cartButton: {
+      position: "absolute",
+      top: 16,
+      right: isRTL ? undefined : 16,
+      left: isRTL ? 16 : undefined,
+      backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",
+      padding: 12,
+      borderRadius: 50,
       flexDirection: isRTL ? "row-reverse" : "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 16,
+      gap: 8,
     },
-    cartTitle: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: isDark ? "#ffffff" : "#4e342e",
-      textAlign: isRTL ? "right" : "left",
-    },
-    // تم تصحيح السطور دي
     cartItemCount: {
       backgroundColor: isDark ? "#3d3d3d" : "#d7bfa9",
       paddingHorizontal: 12,
@@ -395,94 +481,111 @@ const NewOrderScreen = () => {
       fontWeight: "600",
       textAlign: "center",
     },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modalContent: {
+      backgroundColor: isDark ? "#1a1a1a" : "#f7f3ef",
+      borderRadius: 16,
+      padding: 16,
+      width: width - 32,
+      maxHeight: height * 0.9,
+    },
+    closeModalButton: {
+      position: "absolute",
+      top: 8,
+      right: isRTL ? undefined : 8,
+      left: isRTL ? 8 : undefined,
+      padding: 8,
+    },
+    cartTitle: {
+      fontSize: 20,
+      fontWeight: "bold",
+      color: isDark ? "#ffffff" : "#4e342e",
+      textAlign: isRTL ? "right" : "left",
+      marginBottom: 16,
+    },
     cartContainer: {
       backgroundColor: isDark ? "#2d2d2d" : "#fffaf5",
-      borderRadius: 20,
-      padding: 16,
-      elevation: 4,
+      borderRadius: 16,
+      padding: 12,
       borderWidth: 1,
       borderColor: isDark ? "#3d3d3d" : "#e5d4c0",
     },
     cartItem: {
-      backgroundColor: isDark ? "#3d3d3d" : "#f7f3ef",
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
-    },
-    cartItemRow: {
       flexDirection: isRTL ? "row-reverse" : "row",
       justifyContent: "space-between",
       alignItems: "center",
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? "#3d3d3d" : "#e5d4c0",
     },
     cartItemDetails: { flex: 1 },
     cartItemName: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: "600",
       color: isDark ? "#ffffff" : "#4e342e",
       textAlign: isRTL ? "right" : "left",
     },
-    // تم تصحيح السطر ده
     cartItemPrice: {
       color: isDark ? "#aaaaaa" : "#6b4f42",
       textAlign: isRTL ? "right" : "left",
+      fontSize: 14,
     },
     cartItemActions: {
       flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
+      gap: 8,
     },
-    // تم تصحيح السطر ده
     gramsInput: {
       backgroundColor: isDark ? "#3d3d3d" : "#d7bfa9",
-      width: 80,
-      height: 40,
+      width: 60,
+      height: 36,
       borderRadius: 10,
       textAlign: "center",
-      fontSize: 16,
+      fontSize: 14,
       color: isDark ? "#ffffff" : "#4e342e",
-      marginHorizontal: 8, // تم تصحيحه
     },
-    removeButton: {
-      marginLeft: isRTL ? 0 : 12,
-      marginRight: isRTL ? 12 : 0,
+    quantityButton: {
       backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
     },
-    cartItemTotalContainer: {
-      marginTop: 8,
-      paddingTop: 8,
-      borderTopWidth: 1,
-      borderTopColor: isDark ? "#3d3d3d" : "#e5d4c0",
-    },
-    cartItemTotal: {
-      textAlign: isRTL ? "left" : "right",
-      fontSize: 18,
-      fontWeight: "bold",
-      color: isDark ? "#cccccc" : "#6d4c41",
+    removeButton: {
+      padding:12,
+      backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
     },
     cartTotalSection: {
-      marginTop: 24,
-      paddingTop: 16,
-      borderTopWidth: 2,
+      marginTop: 16,
+      paddingTop: 12,
+      borderTopWidth: 1,
       borderTopColor: isDark ? "#3d3d3d" : "#e5d4c0",
     },
     cartTotalRow: {
       flexDirection: isRTL ? "row-reverse" : "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 16,
+      marginBottom: 12,
     },
     cartTotalLabel: {
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: "600",
       color: isDark ? "#ffffff" : "#4e342e",
       textAlign: isRTL ? "right" : "left",
     },
     cartTotalAmount: {
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: "bold",
       color: isDark ? "#cccccc" : "#6d4c41",
       textAlign: isRTL ? "right" : "left",
@@ -490,22 +593,24 @@ const NewOrderScreen = () => {
     placeOrderButton: {
       backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",
       padding: 16,
-      borderRadius: 20,
-      elevation: 4,
+      borderRadius: 16,
     },
     placeOrderButtonContent: {
       flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
       justifyContent: "center",
+      gap: 8,
     },
-    // تم تصحيح السطر ده
     placeOrderButtonText: {
       color: "#fff",
-      textAlign: "center",
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: "bold",
-      marginRight: isRTL ? 0 : 8, // تم تصحيحه
-      marginLeft: isRTL ? 8 : 0, // تم تصحيحه
+    },
+    emptyCartText: {
+      textAlign: "center",
+      fontSize: 16,
+      color: isDark ? "#aaaaaa" : "#6b4f42",
+      marginVertical: 20,
     },
     loadingContainer: {
       flex: 1,
@@ -532,11 +637,6 @@ const NewOrderScreen = () => {
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
-      elevation: 4,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
     },
     paginationButtonDisabled: {
       backgroundColor: isDark ? "#2d2d2d" : "#e5d4c0",
@@ -548,17 +648,30 @@ const NewOrderScreen = () => {
       color: isDark ? "#ffffff" : "#4e342e",
     },
   });
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t("worker.newOrder")}</Text>
         <Text style={styles.headerSubtitle}>{t("worker.createNewOrder")}</Text>
+        {cart.length > 0 && (
+          <TouchableOpacity
+            style={styles.cartButton}
+            onPress={() => setIsCartModalVisible(true)}
+          >
+            {renderIcon("ShoppingCart", 24, "#fff")}
+            <View style={styles.cartItemCount}>
+              <Text style={styles.cartItemCountText}>
+                {getCartItemCount()} {t("worker.items")}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-
         <View style={styles.section}>
           <View style={styles.inputContainer}>
             {renderIcon("Search", 20, isDark ? "#ffffff" : "#6b4f42")}
@@ -598,7 +711,11 @@ const NewOrderScreen = () => {
                       <View key={product.id} style={styles.productCard}>
                         <View style={styles.productHeader}>
                           <View style={styles.productImageContainer}>
-                            {renderIcon("Coffee", 28, isDark ? "#ffffff" : "#4e342e")}
+                            {renderIcon(
+                              "Coffee",
+                              28,
+                              isDark ? "#ffffff" : "#4e342e"
+                            )}
                           </View>
                         </View>
                         <View style={styles.productContent}>
@@ -611,10 +728,15 @@ const NewOrderScreen = () => {
                           <View style={styles.productFooter}>
                             <View style={styles.productInfo}>
                               <Text style={styles.productPrice}>
-                                ${parseFloat(product.price).toFixed(2)}/kg
+                                ${parseFloat(product.price).toFixed(2)}/
+                                {parseFloat(product.price) > 100 ? "kg" : "piece"}
                               </Text>
                               <View style={styles.productTimeContainer}>
-                                {renderIcon("Clock", 12, isDark ? "#aaaaaa" : "#6b4f42")}
+                                {renderIcon(
+                                  "Clock",
+                                  12,
+                                  isDark ? "#aaaaaa" : "#6b4f42"
+                                )}
                                 <Text style={styles.productTime}>2 min</Text>
                               </View>
                             </View>
@@ -635,7 +757,6 @@ const NewOrderScreen = () => {
                       </View>
                     ))}
                   </View>
-
                 </View>
               )}
               {filteredProducts.cold.length > 0 && (
@@ -653,7 +774,11 @@ const NewOrderScreen = () => {
                       <View key={product.id} style={styles.productCard}>
                         <View style={styles.productHeader}>
                           <View style={styles.productImageContainer}>
-                            {renderIcon("Snowflake", 28, isDark ? "#ffffff" : "#4e342e")}
+                            {renderIcon(
+                              "Snowflake",
+                              28,
+                              isDark ? "#ffffff" : "#4e342e"
+                            )}
                           </View>
                         </View>
                         <View style={styles.productContent}>
@@ -666,10 +791,15 @@ const NewOrderScreen = () => {
                           <View style={styles.productFooter}>
                             <View style={styles.productInfo}>
                               <Text style={styles.productPrice}>
-                                ${parseFloat(product.price).toFixed(2)}/kg
+                                ${parseFloat(product.price).toFixed(2)}/
+                                {parseFloat(product.price) > 100 ? "kg" : "piece"}
                               </Text>
                               <View style={styles.productTimeContainer}>
-                                {renderIcon("Clock", 12, isDark ? "#aaaaaa" : "#6b4f42")}
+                                {renderIcon(
+                                  "Clock",
+                                  12,
+                                  isDark ? "#aaaaaa" : "#6b4f42"
+                                )}
                                 <Text style={styles.productTime}>2 min</Text>
                               </View>
                             </View>
@@ -691,7 +821,6 @@ const NewOrderScreen = () => {
                     ))}
                   </View>
                   <View style={styles.paginationContainer}>
-                    {/* تم تصحيح السطر ده */}
                     <TouchableOpacity
                       style={[
                         styles.paginationButton,
@@ -703,13 +832,14 @@ const NewOrderScreen = () => {
                       {renderIcon("ChevronLeft", 20, "#fff")}
                     </TouchableOpacity>
                     <Text style={styles.paginationText}>
-                      {t("worker.page")} {currentPage} {t("worker.of")} {totalPages}
+                      {t("worker.page")} {currentPage} {t("worker.of")}{" "}
+                      {totalPages}
                     </Text>
-                    {/* تم تصحيح السطر ده */}
                     <TouchableOpacity
                       style={[
                         styles.paginationButton,
-                        currentPage === totalPages && styles.paginationButtonDisabled,
+                        currentPage === totalPages &&
+                          styles.paginationButtonDisabled,
                       ]}
                       onPress={handleNextPage}
                       disabled={currentPage === totalPages}
@@ -734,7 +864,11 @@ const NewOrderScreen = () => {
                       <View key={product.id} style={styles.productCard}>
                         <View style={styles.productHeader}>
                           <View style={styles.productImageContainer}>
-                            {renderIcon("Utensils", 28, isDark ? "#ffffff" : "#4e342e")}
+                            {renderIcon(
+                              "Utensils",
+                              28,
+                              isDark ? "#ffffff" : "#4e342e"
+                            )}
                           </View>
                         </View>
                         <View style={styles.productContent}>
@@ -747,10 +881,15 @@ const NewOrderScreen = () => {
                           <View style={styles.productFooter}>
                             <View style={styles.productInfo}>
                               <Text style={styles.productPrice}>
-                                ${parseFloat(product.price).toFixed(2)}/kg
+                                ${parseFloat(product.price).toFixed(2)}/
+                                {parseFloat(product.price) > 100 ? "kg" : "piece"}
                               </Text>
                               <View style={styles.productTimeContainer}>
-                                {renderIcon("Clock", 12, isDark ? "#aaaaaa" : "#6b4f42")}
+                                {renderIcon(
+                                  "Clock",
+                                  12,
+                                  isDark ? "#aaaaaa" : "#6b4f42"
+                                )}
                                 <Text style={styles.productTime}>2 min</Text>
                               </View>
                             </View>
@@ -772,7 +911,6 @@ const NewOrderScreen = () => {
                     ))}
                   </View>
                   <View style={styles.paginationContainer}>
-                    {/* تم تصحيح السطر ده */}
                     <TouchableOpacity
                       style={[
                         styles.paginationButton,
@@ -784,13 +922,14 @@ const NewOrderScreen = () => {
                       {renderIcon("ChevronLeft", 20, "#fff")}
                     </TouchableOpacity>
                     <Text style={styles.paginationText}>
-                      {t("worker.page")} {currentPage} {t("worker.of")} {totalPages}
+                      {t("worker.page")} {currentPage} {t("worker.of")}{" "}
+                      {totalPages}
                     </Text>
-                    {/* تم تصحيح السطر ده */}
                     <TouchableOpacity
                       style={[
                         styles.paginationButton,
-                        currentPage === totalPages && styles.paginationButtonDisabled,
+                        currentPage === totalPages &&
+                          styles.paginationButtonDisabled,
                       ]}
                       onPress={handleNextPage}
                       disabled={currentPage === totalPages}
@@ -803,26 +942,37 @@ const NewOrderScreen = () => {
             </>
           )}
         </View>
-        {cart.length > 0 && (
-          <View style={styles.cartSection}>
-            <View style={styles.cartHeader}>
-              <Text style={styles.cartTitle}>{t("worker.orderCart")}</Text>
-              <View style={styles.cartItemCount}>
-                <Text style={styles.cartItemCountText}>
-                  {getCartItemCount()} {t("worker.items")}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.cartContainer}>
-              {cart.map((item) => (
-                <View key={item.id} style={styles.cartItem}>
-                  <View style={styles.cartItemRow}>
+      </ScrollView>
+
+      <Modal
+        visible={isCartModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsCartModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.closeModalButton}
+              onPress={() => setIsCartModalVisible(false)}
+            >
+              {renderIcon("X", 24, isDark ? "#ffffff" : "#4e342e")}
+            </TouchableOpacity>
+            <Text style={styles.cartTitle}>{t("worker.orderCart")}</Text>
+            {cart.length === 0 ? (
+              <Text style={styles.emptyCartText}>{t("worker.emptyCart")}</Text>
+            ) : (
+              <ScrollView style={styles.cartContainer}>
+                {cart.map((item) => (
+                  <View key={item.id} style={styles.cartItem}>
                     <View style={styles.cartItemDetails}>
                       <Text style={styles.cartItemName}>
                         {getTranslatedProductName(item.name)}
                       </Text>
                       <Text style={styles.cartItemPrice}>
-                        ${parseFloat(item.price).toFixed(2)}/kg
+                        ${parseFloat(item.price).toFixed(2)}/
+                        {item.unit_type === "grams" ? "kg" : "piece"} - $
+                        {getItemPrice(item).toFixed(2)}
                       </Text>
                     </View>
                     <View style={styles.cartItemActions}>
@@ -830,55 +980,74 @@ const NewOrderScreen = () => {
                         style={styles.gramsInput}
                         value={item.grams.toString()}
                         onChangeText={(text) => {
-                          const grams = parseInt(text) || 0;
+                          const grams = item.unit_type === "pieces" ? parseInt(text) : parseFloat(text);
                           updateGrams(item.id, grams);
                         }}
                         keyboardType="numeric"
-                        placeholder="g"
+                        placeholder="0"
                         placeholderTextColor={isDark ? "#aaaaaa" : "#9CA3AF"}
                       />
+                      {item.unit_type === "pieces" && (
+                        <>
+                          <TouchableOpacity
+                            style={styles.quantityButton}
+                            onPress={() => updateGrams(item.id, item.grams - 1)}
+                            disabled={item.grams <= 1}
+                          >
+                            {renderIcon("Minus", 16, "#fff")}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.quantityButton}
+                            onPress={() => updateGrams(item.id, item.grams + 1)}
+                          >
+                            {renderIcon("Plus", 16, "#fff")}
+                          </TouchableOpacity>
+                        </>
+                      )}
                       <TouchableOpacity
-                        onPress={() => removeFromCart(item.id)}
                         style={styles.removeButton}
+                        onPress={() => removeFromCart(item.id)}
                       >
-                        {renderIcon("X", 16, "#fff")}
+                        {renderIcon("X", 20, "#fff")}
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <View style={styles.cartItemTotalContainer}>
-                    <Text style={styles.cartItemTotal}>
-                      ${getItemPrice(item).toFixed(2)}
+                ))}
+                <View style={styles.cartTotalSection}>
+                  <View style={styles.cartTotalRow}>
+                    <Text style={styles.cartTotalLabel}>
+                      {t("worker.totalAmount")}
+                    </Text>
+                    <Text style={styles.cartTotalAmount}>
+                      ${getTotal().toFixed(2)}
                     </Text>
                   </View>
+                  <TouchableOpacity
+                    style={styles.placeOrderButton}
+                    onPress={placeOrder}
+                    disabled={loading}
+                  >
+                    <View style={styles.placeOrderButtonContent}>
+                      {loading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <>
+                          {renderIcon("Send", 20, "#fff")}
+                          <Text style={styles.placeOrderButtonText}>
+                            {t("worker.placeOrder")}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                  </TouchableOpacity>
                 </View>
-              ))}
-              <View style={styles.cartTotalSection}>
-                <View style={styles.cartTotalRow}>
-                  <Text style={styles.cartTotalLabel}>
-                    {t("worker.totalAmount")}
-                  </Text>
-                  <Text style={styles.cartTotalAmount}>
-                    ${getTotal().toFixed(2)}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.placeOrderButton}
-                  onPress={placeOrder}
-                >
-                  <View style={styles.placeOrderButtonContent}>
-                    {renderIcon("Send", 20, "#fff")}
-                    <Text style={styles.placeOrderButtonText}>
-                      {t("worker.placeOrder")}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
+              </ScrollView>
+            )}
           </View>
-        )}
-      </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 };
-export default NewOrderScreen;
 
+export default NewOrderScreen;
