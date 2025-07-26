@@ -64,7 +64,7 @@ const ProductsScreen = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [profileError, setProfileError] = useState(null);
+  // const [validationErrors, setValidationErrors] = useState(null);
   const [error, setError] = useState(null);
 
   const categories = [
@@ -74,6 +74,50 @@ const ProductsScreen = () => {
     { id: "3", name: t("admin.food") || "طعام" },
     { id: "4", name: t("admin.snacks") || "وجبات خفيفة" },
   ];
+
+
+
+
+// const validateForm = () => {
+//   let valid = true;
+//   let newErrors = {};
+
+//   // name is required
+//   const nameRegex = /^[a-zA-Z\u0600-\u06FF\s]{3,40}$/;
+//   if (!price.trim()) {
+//     newErrors.price = "price is required";
+//     valid = false;
+//   } else if (!priceRegex.test(price)) {
+//     newErrors.price = "price is invalid";
+//     valid = false;
+//   }
+
+//   // description is required
+//   if (!description.trim()) {
+//     newErrors.description = "description is required";
+//     valid = false;
+//   }
+
+//   // stock is required and must be a number
+//   if (!stock.trim()) {
+//     newErrors.stock = "stock is required";
+//     valid = false;
+//   } else if (!/^[0-9]+$/.test(stock)) {
+//     newErrors.stock = "stock must be a number";
+//     valid = false;
+//   }
+
+//   // barcode is required
+//   if (!barcode.trim()) {
+//     newErrors.barcode = "barcode is required";
+//     valid = false;
+//   }
+
+//   setValidationErrors(newErrors);
+//   return valid;
+// };
+
+
 
 
 
@@ -271,9 +315,6 @@ const ProductsScreen = () => {
     if (!barcode.trim()) {
   setBarcodeError("barcode is required" || "يجب إدخال الباركود");
   hasError = true;
-} else if (!/^[0-9]{8,14}$/.test(barcode)) {
-  setBarcodeError("barcode must be between 8 and 14 digits" || "الباركود يجب أن يكون من 8 إلى 14 رقمًا");
-  hasError = true;
 } else {
   setBarcodeError("");
 }
@@ -427,7 +468,7 @@ const ProductsScreen = () => {
 
   const handleEditProduct = (product) => {
     console.log("Edit Product button pressed for:", product.id);
-  if (!validateForm()) return;
+  // if (!validateForm()) return;
 
 
     setName(product.name);
