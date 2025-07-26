@@ -49,7 +49,7 @@ const WorkerBottomTabNavigator = () => {
         }}
       />
 
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Tasks"
         component={TasksScreen}
         options={{
@@ -59,7 +59,7 @@ const WorkerBottomTabNavigator = () => {
             <CheckCircle color={color} size={size} />
           ),
         }}
-      />
+      /> */}
 
       <Tab.Screen
         name="NewOrder"
@@ -71,7 +71,7 @@ const WorkerBottomTabNavigator = () => {
         }}
       />
 
-      <Tab.Screen
+      {/* <Tab.Screen
         name="OrderStatus"
         component={OrderStatusScreen}
         options={{
@@ -81,7 +81,7 @@ const WorkerBottomTabNavigator = () => {
             <BarChart color={color} size={size} />
           ),
         }}
-      />
+      /> */}
 
       {/* Profile tab (optional) */}
       <Tab.Screen
