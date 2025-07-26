@@ -64,6 +64,7 @@ const ProductsScreen = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [profileError, setProfileError] = useState(null);
   const [error, setError] = useState(null);
 
   const categories = [
@@ -73,6 +74,8 @@ const ProductsScreen = () => {
     { id: "3", name: t("admin.food") || "طعام" },
     { id: "4", name: t("admin.snacks") || "وجبات خفيفة" },
   ];
+
+
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -222,25 +225,59 @@ const ProductsScreen = () => {
     setBarcodeError("");
 
     if (!name.trim()) {
-      setNameError(t("admin.nameRequired") || "الاسم مطلوب");
-      hasError = true;
-    }
-    if (!price || isNaN(price) || parseFloat(price) <= 0) {
-      setPriceError(
-        t("admin.priceInvalid") || "السعر يجب أن يكون رقمًا أكبر من 0"
-      );
-      hasError = true;
-    }
-    if (!stock || isNaN(stock) || parseFloat(stock) < 0) {
-      setStockError(
-        t("admin.stockInvalid") || "المخزون يجب أن يكون رقمًا غير سالب"
-      );
-      hasError = true;
-    }
+  setNameError("name is required" || "يجب إدخال اسم المنتج");
+  hasError = true;
+} else if (name.trim().length < 3) {
+  setNameError("name must be at least 3 characters long" || "اسم المنتج يجب أن يكون 3 أحرف على الأقل");
+  hasError = true;
+} else if (/^[0-9\s]+$/.test(name)) {
+  setNameError("name cannot be only numbers" || "اسم المنتج لا يمكن أن يكون أرقام فقط");
+  hasError = true;
+} else if (!/^[\u0600-\u06FFa-zA-Z0-9\s\-()]+$/.test(name)) {
+  setNameError("name contains invalid characters" || "اسم المنتج يحتوي على رموز غير مسموح بها");
+  hasError = true;
+} else {
+  setNameError("");
+}
+
+
+    if (!price) {
+  setPriceError("price is required" || "السعر مطلوب");
+  hasError = true;
+} else if (isNaN(price)) {
+  setPriceError("price must be a valid number" || "السعر يجب أن يكون رقمًا صالحًا");
+  hasError = true;
+} else if (parseFloat(price) <= 0) {
+  setPriceError("price must be a positive number" || "السعر يجب أن يكون رقمًا موجبًا");
+  hasError = true;
+} else {
+  setPriceError(""); // مفيش أخطاء
+}
+
+
+   if (!stock) {
+  setStockError("stock is required" || "المخزون مطلوب");
+  hasError = true;
+} else if (isNaN(stock)) {
+  setStockError("stock must be a valid number" || "المخزون يجب أن يكون رقمًا صحيحًا");
+  hasError = true;
+} else if (parseFloat(stock) < 0) {
+  setStockError("stock must be a positive number" || "المخزون يجب أن يكون رقمًا موجبًا");
+  hasError = true;
+} else {
+  setStockError(""); // لا يوجد خطأ
+}
+
     if (!barcode.trim()) {
-      setBarcodeError(t("admin.barcodeRequired") || "الباركود مطلوب");
-      hasError = true;
-    }
+  setBarcodeError("barcode is required" || "يجب إدخال الباركود");
+  hasError = true;
+} else if (!/^[0-9]{8,14}$/.test(barcode)) {
+  setBarcodeError("barcode must be between 8 and 14 digits" || "الباركود يجب أن يكون من 8 إلى 14 رقمًا");
+  hasError = true;
+} else {
+  setBarcodeError("");
+}
+
 
     if (hasError) {
       console.log("Validation Error:", { name, price, stock, barcode });
@@ -390,6 +427,9 @@ const ProductsScreen = () => {
 
   const handleEditProduct = (product) => {
     console.log("Edit Product button pressed for:", product.id);
+  if (!validateForm()) return;
+
+
     setName(product.name);
     setCategory(
       product.category_id === "1"
@@ -1156,6 +1196,12 @@ const ProductsScreen = () => {
       color: "#4e342e",
       fontWeight: "500",
     },
+    errorText: {
+  color: "red",
+  fontSize: 12,
+  marginLeft: 7,
+  marginBottom: 8,
+},
   });
 
   return (
@@ -1365,7 +1411,7 @@ const ProductsScreen = () => {
             style={styles.inputField}
           />
           {nameError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+            <Text style={styles.errorText}>
               {nameError}
             </Text>
           ) : null}
@@ -1380,7 +1426,7 @@ const ProductsScreen = () => {
             style={styles.inputField}
           />
           {priceError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+            <Text style={styles.errorText}>
               {priceError}
             </Text>
           ) : null}
@@ -1395,12 +1441,13 @@ const ProductsScreen = () => {
             style={styles.inputField}
           />
           {stockError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+            <Text style={styles.errorText}>
               {stockError}
             </Text>
           ) : null}
+
           <TextInput
-            placeholder={t("admin.barcode") || "الباركود"}
+            placeholder= {"Barcode"  || "الباركود"}
             value={barcode}
             onChangeText={(text) => {
               setBarcode(text);
@@ -1409,12 +1456,13 @@ const ProductsScreen = () => {
             style={styles.inputField}
           />
           {barcodeError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
+            <Text style={styles.errorText}>
               {barcodeError}
             </Text>
           ) : null}
+
           <TextInput
-            placeholder={t("admin.description") || "الوصف"}
+            placeholder={t("admin.productDescription") || "الوصف"}
             value={description}
             onChangeText={setDescription}
             style={styles.inputField}
