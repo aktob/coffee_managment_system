@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
@@ -24,13 +25,27 @@ import {
 } from "lucide-react-native";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const { width } = Dimensions.get("window");
+const BASE_URL = "http://api-coffee.m-zedan.com/api";
 
 const AnalyticsScreen = () => {
   const { t } = useTranslation();
   const { currentLanguage } = useSelector((state) => state.language);
   const isRTL = currentLanguage === "ar";
   const [timeRange, setTimeRange] = useState("week");
+  const [dashboardData, setDashboardData] = useState({
+    summary: {
+      products: { total: 0, low_stock: 0, out_of_stock: 0 },
+      users: { total: 0, active: 0 },
+      today: { orders: 0, sales: 0, purchases: 0 },
+      monthly: { orders: 0, sales: 0, purchases: 0 },
+    },
+    trends: { sales_trend: [] },
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const chartConfig = {
     backgroundColor: "#8d6e63",
@@ -47,60 +62,70 @@ const AnalyticsScreen = () => {
     },
   };
 
-  // Mock data
+  // Fetch dashboard data from API
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        throw new Error(t("worker.noToken"));
+      }
+      const response = await fetch(`${BASE_URL}/admin/dashboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const result = await response.json();
+      console.log("Dashboard API response:", result);
+      setDashboardData(result);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error.message);
+      setError(error.message);
+      Alert.alert(t("worker.error"), error.message || t("worker.fetchFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // Revenue Chart Data
   const revenueData = {
     week: {
-      labels: isRTL
-        ? [
-            t("common.sun"),
-            t("common.sat"),
-            t("common.fri"),
-            t("common.thu"),
-            t("common.wed"),
-            t("common.tue"),
-            t("common.mon"),
-          ]
-        : [
-            t("common.mon"),
-            t("common.tue"),
-            t("common.wed"),
-            t("common.thu"),
-            t("common.fri"),
-            t("common.sat"),
-            t("common.sun"),
-          ],
+      labels: dashboardData.trends.sales_trend.map((trend) =>
+        new Date(trend.date).toLocaleDateString(isRTL ? "ar-EG" : "en-US", {
+          day: "numeric",
+          month: "short",
+        })
+      ).reverse(),
       datasets: [
         {
-          data: isRTL
-            ? [4000, 4500, 2900, 3800, 2800, 3200, 2500]
-            : [2500, 3200, 2800, 3800, 2900, 4500, 4000],
+          data: dashboardData.trends.sales_trend.map((trend) => parseFloat(trend.sales)).reverse(),
         },
       ],
     },
     month: {
       labels: isRTL
-        ? [
-            t("admin.week4"),
-            t("admin.week3"),
-            t("admin.week2"),
-            t("admin.week1"),
-          ]
-        : [
-            t("admin.week1"),
-            t("admin.week2"),
-            t("admin.week3"),
-            t("admin.week4"),
-          ],
+        ? [t("admin.week4"), t("admin.week3"), t("admin.week2"), t("admin.week1")]
+        : [t("admin.week1"), t("admin.week2"), t("admin.week3"), t("admin.week4")],
       datasets: [
         {
           data: isRTL
-            ? [16000, 13500, 15000, 12000]
+            ? [16000, 13500, 15000, 12000] // Mock data for monthly
             : [12000, 15000, 13500, 16000],
         },
       ],
     },
   };
 
+  // Category Performance (Mock data as no category data in API)
   const categoryData = {
     labels: isRTL
       ? [
@@ -124,6 +149,7 @@ const AnalyticsScreen = () => {
     ],
   };
 
+  // Peak Hours Distribution (Mock data as no peak hours in API)
   const pieChartData = [
     {
       name: t("admin.morning"),
@@ -149,8 +175,7 @@ const AnalyticsScreen = () => {
     iconName,
     size = 24,
     color = "#4e342e",
-    isRTL = false,
-   
+    isRTL = false
   ) => {
     if (isRTL) {
       if (iconName === "ArrowLeft") {
@@ -160,89 +185,65 @@ const AnalyticsScreen = () => {
       }
     }
 
-    const iconStyle = isRTL
-      ? { alignSelf: "flex-end" }
-      : {};
+    const iconStyle = isRTL ? { alignSelf: "flex-end" } : {};
 
     switch (iconName) {
       case "TrendingUp":
-        return (
-          <TrendingUp size={size} color={color} style={iconStyle} />
-        );
+        return <TrendingUp size={size} color={color} style={iconStyle} />;
       case "DollarSign":
-        return (
-          <DollarSign size={size} color={color} style={iconStyle} />
-        );
+        return <DollarSign size={size} color={color} style={iconStyle} />;
       case "ShoppingBag":
-        return (
-          <ShoppingBag size={size} color={color} style={iconStyle} />
-        );
+        return <ShoppingBag size={size} color={color} style={iconStyle} />;
       case "Star":
-        return (
-          <Star size={size} color={color} style={iconStyle} />
-        );
+        return <Star size={size} color={color} style={iconStyle} />;
       case "Calendar":
-        return (
-          <Calendar size={size} color={color} style={iconStyle} />
-        );
+        return <Calendar size={size} color={color} style={iconStyle} />;
       case "Download":
-        return (
-          <Download size={size} color={color} style={iconStyle} />
-        );
+        return <Download size={size} color={color} style={iconStyle} />;
       case "FileText":
-        return (
-          <FileText size={size} color={color} style={iconStyle} />
-        );
+        return <FileText size={size} color={color} style={iconStyle} />;
       case "ArrowLeft":
-        return (
-          <ArrowLeft size={size} color={color} style={iconStyle} />
-        );
+        return <ArrowLeft size={size} color={color} style={iconStyle} />;
       case "ArrowRight":
-        return (
-          <ArrowRight size={size} color={color} style={iconStyle} />
-        );
+        return <ArrowRight size={size} color={color} style={iconStyle} />;
       default:
         return null;
     }
   };
 
+  const handleExportPDF = async () => {
+    try {
+      const htmlContent = `
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              body { font-family: Arial; padding: 24px; direction: ${isRTL ? "rtl" : "ltr"}; }
+              h1 { color: #333; }
+              table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+              th, td { border: 1px solid #ccc; padding: 8px; text-align: ${isRTL ? "right" : "left"}; }
+            </style>
+          </head>
+          <body>
+            <h1>${t("admin.analyticsReport")}</h1>
+            <table>
+              <tr><th>${t("admin.metric")}</th><th>${t("admin.value")}</th></tr>
+              <tr><td>${t("admin.totalRevenue")}</td><td>${dashboardData.summary.monthly.sales.toFixed(2)}</td></tr>
+              <tr><td>${t("admin.totalOrders")}</td><td>${dashboardData.summary.monthly.orders}</td></tr>
+              <tr><td>${t("admin.users")}</td><td>${dashboardData.summary.users.total}</td></tr>
+              <tr><td>${t("admin.products")}</td><td>${dashboardData.summary.products.total}</td></tr>
+            </table>
+          </body>
+        </html>
+      `;
 
-
-// New i added
-const handleExportPDF = async () => {
-  try {
-    const htmlContent = `
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <style>
-            body { font-family: Arial; padding: 24px; }
-            h1 { color: #333; }
-            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-          </style>
-        </head>
-        <body>
-          <h1>Analytics Report</h1>
-          <table>
-            <tr><th>Metric</th><th>Value</th></tr>
-            <tr><td>Users</td><td>120</td></tr>
-            <tr><td>Promotions</td><td>45</td></tr>
-            <tr><td>Scans</td><td>310</td></tr>
-          </table>
-        </body>
-      </html>
-    `;
-
-    const { uri } = await Print.printToFileAsync({ html: htmlContent });
-    await Sharing.shareAsync(uri);
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-  }
-};
-// New i added
-
-
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      await Sharing.shareAsync(uri);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      Alert.alert(t("worker.error"), t("worker.exportFailed"));
+    }
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -289,13 +290,8 @@ const handleExportPDF = async () => {
       backgroundColor: "#fffaf5",
       borderRadius: 20,
       padding: 4,
-      elevation: 4,
       borderWidth: 1,
       borderColor: "#e5d4c0",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
     },
     timeRangeButton: {
       flex: 1,
@@ -307,7 +303,6 @@ const handleExportPDF = async () => {
     },
     timeRangeButtonActive: {
       backgroundColor: "#8d6e63",
-      elevation: 2,
     },
     timeRangeButtonText: {
       fontSize: 14,
@@ -329,13 +324,8 @@ const handleExportPDF = async () => {
       borderRadius: 20,
       padding: 20,
       marginBottom: 16,
-      elevation: 6,
       borderWidth: 1,
       borderColor: "#e5d4c0",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
     },
     metricValue: {
       fontSize: 24,
@@ -355,13 +345,8 @@ const handleExportPDF = async () => {
       borderRadius: 24,
       padding: 20,
       marginBottom: 20,
-      elevation: 6,
       borderWidth: 1,
       borderColor: "#e5d4c0",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
     },
     chartTitle: {
       fontSize: 18,
@@ -383,11 +368,6 @@ const handleExportPDF = async () => {
       flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
       justifyContent: "center",
-      elevation: 6,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
     },
     exportButtonText: {
       color: "#fff",
@@ -396,9 +376,20 @@ const handleExportPDF = async () => {
       marginRight: isRTL ? 0 : 8,
       marginLeft: isRTL ? 8 : 0,
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      minHeight: 200,
+    },
+    errorText: {
+      textAlign: "center",
+      fontSize: 16,
+      color: "#dc2626",
+      marginVertical: 16,
+    },
   });
 
-  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -412,154 +403,165 @@ const handleExportPDF = async () => {
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Time Range Selector */}
-        <View style={styles.section}>
-          <View style={styles.timeRangeContainer}>
-            <TouchableOpacity
-              style={[
-                styles.timeRangeButton,
-                timeRange === "week" && styles.timeRangeButtonActive,
-              ]}
-              onPress={() => setTimeRange("week")}
-            >
-              <Text
-                style={[
-                  styles.timeRangeButtonText,
-                  timeRange === "week" && styles.timeRangeButtonTextActive,
-                ]}
-              >
-                {t("admin.thisWeek")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.timeRangeButton,
-                timeRange === "month" && styles.timeRangeButtonActive,
-              ]}
-              onPress={() => setTimeRange("month")}
-            >
-              <Text
-                style={[
-                  styles.timeRangeButtonText,
-                  timeRange === "month" && styles.timeRangeButtonTextActive,
-                ]}
-              >
-                {t("admin.thisMonth")}
-              </Text>
-            </TouchableOpacity>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#8d6e63" />
           </View>
-        </View>
-
-        {/* Key Metrics */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("admin.keyMetrics")}</Text>
-          <View style={styles.metricsContainer}>
-            <View style={styles.metricCard}>
-              {renderIcon("DollarSign", 24, "#6d4c41", isRTL)}
-              <Text style={styles.metricValue}>$45,678</Text>
-              <Text style={styles.metricLabel}>{t("admin.totalRevenue")}</Text>
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          <>
+            {/* Time Range Selector */}
+            <View style={styles.section}>
+              <View style={styles.timeRangeContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.timeRangeButton,
+                    timeRange === "week" && styles.timeRangeButtonActive,
+                  ]}
+                  onPress={() => setTimeRange("week")}
+                >
+                  <Text
+                    style={[
+                      styles.timeRangeButtonText,
+                      timeRange === "week" && styles.timeRangeButtonTextActive,
+                    ]}
+                  >
+                    {t("admin.thisWeek")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.timeRangeButton,
+                    timeRange === "month" && styles.timeRangeButtonActive,
+                  ]}
+                  onPress={() => setTimeRange("month")}
+                >
+                  <Text
+                    style={[
+                      styles.timeRangeButtonText,
+                      timeRange === "month" && styles.timeRangeButtonTextActive,
+                    ]}
+                  >
+                    {t("admin.thisMonth")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.metricCard}>
-              {renderIcon("ShoppingBag", 24, "#6d4c41", isRTL)}
-              <Text style={styles.metricValue}>3,456</Text>
-              <Text style={styles.metricLabel}>{t("admin.totalOrders")}</Text>
+            {/* Key Metrics */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t("admin.keyMetrics")}</Text>
+              <View style={styles.metricsContainer}>
+                <View style={styles.metricCard}>
+                  {renderIcon("DollarSign", 24, "#6d4c41", isRTL)}
+                  <Text style={styles.metricValue}>
+                    ${dashboardData.summary[timeRange === "week" ? "today" : "monthly"].sales.toFixed(2)}
+                  </Text>
+                  <Text style={styles.metricLabel}>{t("admin.totalRevenue")}</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  {renderIcon("ShoppingBag", 24, "#6d4c41", isRTL)}
+                  <Text style={styles.metricValue}>
+                    {dashboardData.summary[timeRange === "week" ? "today" : "monthly"].orders}
+                  </Text>
+                  <Text style={styles.metricLabel}>{t("admin.totalOrders")}</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  {renderIcon("TrendingUp", 24, "#6d4c41", isRTL)}
+                  <Text style={styles.metricValue}>
+                    {dashboardData.summary.users.total}
+                  </Text>
+                  <Text style={styles.metricLabel}>{t("admin.users")}</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  {renderIcon("Star", 24, "#6d4c41", isRTL)}
+                  <Text style={styles.metricValue}>
+                    {dashboardData.summary.products.total}
+                  </Text>
+                  <Text style={styles.metricLabel}>{t("admin.products")}</Text>
+                </View>
+              </View>
             </View>
 
-            <View style={styles.metricCard}>
-              {renderIcon("TrendingUp", 24, "#6d4c41", isRTL)}
-              <Text style={styles.metricValue}>$13.20</Text>
-              <Text style={styles.metricLabel}>{t("admin.avgOrderValue")}</Text>
+            {/* Revenue Chart */}
+            <View style={styles.section}>
+              <View style={styles.chartContainer}>
+                <Text style={styles.chartTitle}>{t("admin.revenueOverview")}</Text>
+                <LineChart
+                  data={revenueData[timeRange]}
+                  width={width - 72}
+                  height={220}
+                  chartConfig={chartConfig}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                  getDotProps={() => ({
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: "#6d4c41",
+                  })}
+                />
+              </View>
             </View>
 
-            <View style={styles.metricCard}>
-              {renderIcon("Star", 24, "#6d4c41", isRTL)}
-              <Text style={styles.metricValue}>89%</Text>
-              <Text style={styles.metricLabel}>
-                {t("admin.customerSatisfaction")}
-              </Text>
+            {/* Category Performance */}
+            <View style={styles.section}>
+              <View style={styles.chartContainer}>
+                <Text style={styles.chartTitle}>
+                  {t("admin.categoryPerformance")}
+                </Text>
+                <BarChart
+                  data={categoryData}
+                  width={width - 72}
+                  height={220}
+                  chartConfig={chartConfig}
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                />
+              </View>
             </View>
-          </View>
-        </View>
 
-        {/* Revenue Chart */}
-        <View style={styles.section}>
-          <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>{t("admin.revenueOverview")}</Text>
-            <LineChart
-              data={revenueData[timeRange]}
-              width={width - 72}
-              height={220}
-              chartConfig={chartConfig}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
-              getDotProps={(value, index) => ({
-              r: "6", // كبر الدائرة
-              strokeWidth: "2",
-              stroke: "#6d4c41",
-            })}
-            />
-          </View>
-        </View>
+            {/* Peak Hours Distribution */}
+            <View style={styles.section}>
+              <View style={styles.chartContainer}>
+                <Text style={styles.chartTitle}>
+                  {t("admin.peakHoursDistribution")}
+                </Text>
+                <PieChart
+                  data={pieChartData}
+                  width={width - 72}
+                  height={220}
+                  chartConfig={chartConfig}
+                  accessor="population"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  absolute
+                />
+              </View>
+            </View>
 
-        {/* Category Performance */}
-        <View style={styles.section}>
-          <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>
-              {t("admin.categoryPerformance")}
-            </Text>
-            <BarChart
-              data={categoryData}
-              width={width - 72}
-              height={220}
-              chartConfig={chartConfig}
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
-            />
-          </View>
-        </View>
-
-        {/* Peak Hours Distribution */}
-        <View style={styles.section}>
-          <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>
-              {t("admin.peakHoursDistribution")}
-            </Text>
-            <PieChart
-              data={pieChartData}
-              width={width - 72}
-              height={220}
-              chartConfig={chartConfig}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              absolute
-            />
-          </View>
-        </View>
-
-
-        {/* Export Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("admin.exportData")}</Text>
-          <View style={styles.exportContainer}>
-            <TouchableOpacity
-              style={styles.exportButton}
-              onPress={handleExportPDF}
-            >
-              {renderIcon("FileText", 20, "#fff")}
-              <Text style={styles.exportButtonText}>
-                {t("admin.exportPDF")}
-              </Text>
-            </TouchableOpacity>
-
-          </View>
-        </View>
+            {/* Export Actions */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t("admin.exportData")}</Text>
+              <View style={styles.exportContainer}>
+                <TouchableOpacity
+                  style={styles.exportButton}
+                  onPress={handleExportPDF}
+                >
+                  {renderIcon("FileText", 20, "#fff", isRTL)}
+                  <Text style={styles.exportButtonText}>
+                    {t("admin.exportPDF")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
