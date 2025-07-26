@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   Switch,
+  TextInput,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSelector, useDispatch } from "react-redux";
@@ -46,10 +47,19 @@ const ProfileScreen = () => {
   const { currentLanguage } = useSelector((state) => state.language);
   const isRTL = currentLanguage === "ar";
   const navigation = useNavigation();
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editedName, setEditedName] = useState(user?.name || "");
+  const [editedEmail, setEditedEmail] = useState(user?.email || "");
+  const [editedPhone, setEditedPhone] = useState("+966 50 123 4567"); // أو user.phone لو موجود
+  const [localUser, setLocalUser] = useState(user); // نسخة محلية من المستخدم
   // Local state for settings
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+
+const [errors, setErrors] = useState({});
+
 
   // Mock data - replace with real data from your backend
   const workerStats = {
@@ -61,6 +71,49 @@ const ProfileScreen = () => {
     thisMonthOrders: 89,
   };
 
+
+
+const validateForm = () => {
+  let valid = true;
+  let newErrors = {};
+
+  // name is required
+  const nameRegex = /^[a-zA-Z\u0600-\u06FF\s]{3,40}$/;
+  if (!editedName.trim()) {
+    newErrors.name = "name is required";
+    valid = false;
+  }else if (!nameRegex.test(editedName)) {
+  newErrors.name = "name is invalid";
+  valid = false;
+}
+
+  // email is invalid
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!editedEmail.trim()) {
+    newErrors.email = "email is required";
+    valid = false;
+  } else if (!emailRegex.test(editedEmail)) {
+    newErrors.email = "email is invalid";
+    valid = false;
+  }
+
+  // phone is required and valid
+  const phoneRegex = /^[0-9]{11}$/;
+  if (!editedPhone.trim()) {
+    newErrors.phone = "phone is required";
+    valid = false;
+  } else if (!phoneRegex.test(editedPhone)) {
+    newErrors.phone = "phone is invalid";
+    valid = false;
+  }
+
+  setErrors(newErrors);
+  return valid;
+};
+
+
+
+
   const profileSections = [
     {
       title: t("worker.personalInfo"),
@@ -68,12 +121,12 @@ const ProfileScreen = () => {
       items: [
         {
           label: t("worker.fullName"),
-          value: user?.name || "Ahmed Hassan",
+          value: localUser?.name || "Ahmed Hassan",
           icon: "User",
         },
         {
           label: t("auth.email"),
-          value: user?.email || "ahmed.hassan@coffee.com",
+          value: localUser?.email || "ahmed.hassan@coffee.com",
           icon: "User",
         },
         {
@@ -240,6 +293,20 @@ const ProfileScreen = () => {
       },
     ]);
   };
+
+  const handleSaveEdit = () => {
+      if (!validateForm()) return;
+
+setLocalUser((prev) => ({
+    ...prev,
+    name: editedName,
+    email: editedEmail,
+    phone: editedPhone,
+  }));
+  setShowEditModal(false);
+  // Alert.alert("Success", "Profile updated successfully!");
+};
+
 
   const handleAction = (action) => {
     switch (action) {
@@ -528,6 +595,60 @@ const ProfileScreen = () => {
       fontSize: 16,
       fontWeight: "bold",
     },
+      input: {
+  borderWidth: 1,
+  borderColor: "#ddd",
+  borderRadius: 8,
+  padding: 10,
+  marginBottom: 10,
+  backgroundColor: "#fff",
+},
+    modalButton: {
+  padding: 10,
+  borderRadius: 8,
+  minWidth: 100,
+  alignItems: "center",
+},
+modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  newModalContent: {
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 16,
+    width: "80%",
+    alignItems: "center",
+  },
+  newModalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
+    color: "#444",
+  },
+  newModalButton: {
+    backgroundColor: "#4e342e",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  errorText: {
+  color: "red",
+  fontSize: 12,
+  marginLeft: 7,
+  marginBottom: 8,
+},
   });
 
   return (
@@ -549,11 +670,11 @@ const ProfileScreen = () => {
             </View>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>
-                {user?.name || "Ahmed Hassan"}
+                {localUser?.name || "Ahmed Hassan"}
               </Text>
               <Text style={styles.profileRole}>{t("worker.coffeeWorker")}</Text>
             </View>
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity style={styles.editButton} onPress={() => setShowEditModal(true)}>
               {renderIcon("Edit", 18, "#4e342e")}
               <Text style={styles.editButtonText}>{t("worker.edit")}</Text>
             </TouchableOpacity>
@@ -659,6 +780,75 @@ const ProfileScreen = () => {
             </View>
           </View>
         ))}
+
+
+
+
+ {/* New i added */}
+<Modal
+  visible={showEditModal}
+  transparent={true}
+  animationType="slide"
+  onRequestClose={() => setShowEditModal(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Worker</Text>
+
+      <TextInput
+        style={styles.input}
+        value={editedName}
+        onChangeText={setEditedName}
+        placeholder={t("worker.fullName")}
+      />
+      {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
+
+      <TextInput
+        style={styles.input}
+        value={editedEmail}
+        onChangeText={setEditedEmail}
+        placeholder={t("auth.email")}
+        keyboardType="email-address"
+      />
+{errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
+      <TextInput
+        style={styles.input}
+        value={editedPhone}
+        onChangeText={setEditedPhone}
+        placeholder={t("worker.phone")}
+        keyboardType="phone-pad"
+      />
+{errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+
+
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <TouchableOpacity
+          style={[styles.modalButton, { backgroundColor: "#ccc" }]}
+          onPress={() => setShowEditModal(false)}
+        >
+          <Text>{t("common.cancel")}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modalButton, { backgroundColor: "#4e342e" }]}
+          onPress={() => {
+            // تقدر هنا تبعت التعديلات للباك إند
+            handleSaveEdit();
+            // setShowEditModal(false);
+          }}
+        >
+          <Text style={{ color: "#fff" }}>{t("common.save")}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+ {/* New i added */}
+
+
+
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

@@ -68,6 +68,47 @@ const [showAboutModal, setShowAboutModal] = useState(false);
 const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 const [showSystemSettingsModal, setShowSystemSettingsModal] = useState(false);
 
+  const [errors, setErrors] = useState({});
+
+
+
+const validateForm = () => {
+  let valid = true;
+  let newErrors = {};
+
+  // name is required
+  const nameRegex = /^[a-zA-Z\u0600-\u06FF\s]{3,40}$/;
+  if (!editedName.trim()) {
+    newErrors.name = "name is required";
+    valid = false;
+  }else if (!nameRegex.test(editedName)) {
+  newErrors.name = "name is invalid";
+  valid = false;
+}
+
+  // email is invalid
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!editedEmail.trim()) {
+    newErrors.email = "email is required";
+    valid = false;
+  } else if (!emailRegex.test(editedEmail)) {
+    newErrors.email = "email is invalid";
+    valid = false;
+  }
+
+  // phone is required and valid
+  const phoneRegex = /^[0-9]{11}$/;
+  if (!editedPhone.trim()) {
+    newErrors.phone = "phone is required";
+    valid = false;
+  } else if (!phoneRegex.test(editedPhone)) {
+    newErrors.phone = "phone is invalid";
+    valid = false;
+  }
+
+  setErrors(newErrors);
+  return valid;
+};
 
 
 
@@ -267,6 +308,8 @@ const [showSystemSettingsModal, setShowSystemSettingsModal] = useState(false);
 
 
   const handleSaveEdit = () => {
+      if (!validateForm()) return;
+
 setLocalUser((prev) => ({
     ...prev,
     name: editedName,
@@ -274,7 +317,7 @@ setLocalUser((prev) => ({
     phone: editedPhone,
   }));
   setShowEditModal(false);
-  Alert.alert("Success", "Profile updated successfully!");
+  // Alert.alert("Success", "Profile updated successfully!");
 };
 
 
@@ -615,6 +658,12 @@ modalContainer: {
     color: "#fff",
     fontWeight: "bold",
   },
+  errorText: {
+  color: "red",
+  fontSize: 12,
+  marginLeft: 7,
+  marginBottom: 8,
+},
   });
 
 
@@ -768,7 +817,7 @@ modalContainer: {
 >
   <View style={styles.modalOverlay}>
     <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>{t("admin.editProfile")}</Text>
+      <Text style={styles.modalTitle}>Admin</Text>
 
       <TextInput
         style={styles.input}
@@ -776,6 +825,8 @@ modalContainer: {
         onChangeText={setEditedName}
         placeholder={t("admin.fullName")}
       />
+      {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
       <TextInput
         style={styles.input}
         value={editedEmail}
@@ -783,6 +834,8 @@ modalContainer: {
         placeholder={t("auth.email")}
         keyboardType="email-address"
       />
+{errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
       <TextInput
         style={styles.input}
         value={editedPhone}
@@ -790,6 +843,7 @@ modalContainer: {
         placeholder={t("admin.phone")}
         keyboardType="phone-pad"
       />
+{errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <TouchableOpacity
@@ -804,7 +858,7 @@ modalContainer: {
           onPress={() => {
             // تقدر هنا تبعت التعديلات للباك إند
             handleSaveEdit();
-            setShowEditModal(false);
+            // setShowEditModal(false);
           }}
         >
           <Text style={{ color: "#fff" }}>{t("common.save")}</Text>
