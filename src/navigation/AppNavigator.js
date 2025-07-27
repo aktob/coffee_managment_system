@@ -11,6 +11,13 @@ import SplashScreen from "../screens/auth/SplashScreen";
 import SupervisorNavigator from "./SupervisorNavigator";
 import AdminNavigator from "./AdminNavigator";
 import WorkerNavigator from "./WorkerNavigator";
+import WorkingHoursScreen from "./workerNavigations/WorkingHoursScreen";
+import HelpScreen from './workerNavigations/HelpScreen';
+import AboutScreen from './workerNavigations/AboutScreen';
+import PrivacyScreen from './workerNavigations/PrivacyScreen';
+
+
+
 
 const Stack = createNativeStackNavigator();
 
@@ -42,7 +49,14 @@ const AppNavigator = () => {
             <Stack.Screen name="Login" component={LoginScreen} />
           </>
         ) : (
-          <Stack.Screen name="Main" component={RoleNavigator} />
+          <>
+            <Stack.Screen name="RoleNavigator" component={RoleNavigator} />
+            <Stack.Screen name="Main" component={RoleNavigator} />
+            <Stack.Screen name="WorkingHours" component={WorkingHoursScreen} />
+            <Stack.Screen name="Help" component={HelpScreen} />
+            <Stack.Screen name="About" component={AboutScreen} />
+            <Stack.Screen name="Privacy" component={PrivacyScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

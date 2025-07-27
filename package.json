@@ -51,7 +51,8 @@
     "react-native-svg": "15.11.2",
     "react-native-web": "^0.20.0",
     "react-redux": "^9.0.4",
-    "tslib": "^2.8.1"
+    "tslib": "^2.8.1",
+    "@expo/vector-icons": "^14.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
