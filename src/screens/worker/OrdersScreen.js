@@ -250,7 +250,7 @@ const OrderCard = React.memo(
                     </Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={styles.detailsButton}
                   onPress={() => viewDetails(order)}
                 >
@@ -258,7 +258,7 @@ const OrderCard = React.memo(
                   <Text style={styles.detailsButtonText}>
                     {t("worker.detailsButton")}
                   </Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             )}
           </>
@@ -1259,6 +1259,7 @@ const OrdersScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
+                
               </View>
             )}
           </View>
@@ -1325,6 +1326,7 @@ const OrdersScreen = () => {
                 {renderIcon("ChevronRight", 20, "#fff")}
               </TouchableOpacity>
             </View>
+
           </View>
         </View>
       )}
