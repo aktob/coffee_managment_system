@@ -448,6 +448,8 @@ export default {
     tea: "شاي",
   },
   worker: {
+    error: "خطأ",
+    emptyCart: "سلتك فارغة",
     orders: "الطلبات",
     tasks: "المهام",
     newOrder: "طلب جديد",
