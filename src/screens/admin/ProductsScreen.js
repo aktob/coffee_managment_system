@@ -43,166 +43,135 @@ const ProductsScreen = () => {
   const { currentLanguage } = useSelector((state) => state.language);
   const isRTL = currentLanguage === "ar";
 
+  // State Management
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
   const [formVisible, setFormVisible] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("hot");
+  const [category, setCategory] = useState("1");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [stock, setStock] = useState("");
   const [barcode, setBarcode] = useState("");
   const [acceptFloat, setAcceptFloat] = useState(true);
+  const [showOnWebsite, setShowOnWebsite] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editProductId, setEditProductId] = useState(null);
+
+  // Validation States
   const [nameError, setNameError] = useState("");
   const [priceError, setPriceError] = useState("");
   const [stockError, setStockError] = useState("");
   const [barcodeError, setBarcodeError] = useState("");
-  const [products, setProducts] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
-  // const [validationErrors, setValidationErrors] = useState(null);
-  const [error, setError] = useState(null);
+  const [descriptionError, setDescriptionError] = useState("");
 
-  const categories = [
+  // Data States
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([
     { id: "all", name: t("admin.allProducts") || "جميع المنتجات" },
-    { id: "1", name: t("admin.hotDrinks") || "مشروبات ساخنة" },
+    { id: "1", name: t("admin.hotDrinks") || "مشروبات" },
     { id: "2", name: t("admin.beans") || "بن" },
     { id: "3", name: t("admin.food") || "طعام" },
     { id: "4", name: t("admin.snacks") || "وجبات خفيفة" },
-  ];
+  ]);
 
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [perPage, setPerPage] = useState(15);
 
+  // Loading & Error States
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
+  // Fetch Products Function
+  const fetchProducts = async (page = 1, resetData = false) => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+      }
 
-// const validateForm = () => {
-//   let valid = true;
-//   let newErrors = {};
+      const response = await fetch(`${BASE_URL}/admin/products?page=${page}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
 
-//   // name is required
-//   const nameRegex = /^[a-zA-Z\u0600-\u06FF\s]{3,40}$/;
-//   if (!price.trim()) {
-//     newErrors.price = "price is required";
-//     valid = false;
-//   } else if (!priceRegex.test(price)) {
-//     newErrors.price = "price is invalid";
-//     valid = false;
-//   }
-
-//   // description is required
-//   if (!description.trim()) {
-//     newErrors.description = "description is required";
-//     valid = false;
-//   }
-
-//   // stock is required and must be a number
-//   if (!stock.trim()) {
-//     newErrors.stock = "stock is required";
-//     valid = false;
-//   } else if (!/^[0-9]+$/.test(stock)) {
-//     newErrors.stock = "stock must be a number";
-//     valid = false;
-//   }
-
-//   // barcode is required
-//   if (!barcode.trim()) {
-//     newErrors.barcode = "barcode is required";
-//     valid = false;
-//   }
-
-//   setValidationErrors(newErrors);
-//   return valid;
-// };
-
-
-
-
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        const token = await AsyncStorage.getItem("authToken");
-        console.log("Retrieved Token for Fetch Products:", token);
-        if (!token) {
-          throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
-        }
-
-        const response = await fetch(
-          `${BASE_URL}/admin/products?page=${currentPage}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-          }
-        );
-
-        console.log("Fetch Products API Response Status:", response.status);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          if (response.status === 401) {
-            throw new Error(
-              t("admin.unauthorized") || "التوكين غير صالح أو منتهي"
-            );
-          }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
           throw new Error(
-            errorData.message ||
-              t("admin.fetchProductsError") ||
-              `فشل في جلب المنتجات (Status: ${response.status})`
+            t("admin.unauthorized") || "التوكين غير صالح أو منتهي"
           );
         }
-
-        const data = await response.json();
-        console.log("Fetch Products API Response:", data);
-
-        const mappedProducts = data.data.map((product) => ({
-          id: product.id || Date.now(),
-          name: product.name || "منتج بدون اسم",
-          category_id: product.category_id || "1",
-          category:
-            product.category?.name ||
-            (product.category_id === "1"
-              ? "مشروب"
-              : product.category_id === "2"
-                ? "بن"
-                : "طعام"),
-          price: parseFloat(product.price) || 0,
-          description: product.description || product.name || "لا يوجد وصف",
-          stock: product.stock || "0",
-          barcode: product.barcode || "",
-          accept_float: product.accept_float || false,
-          active: product.active || false,
-          rating: product.rating || 0,
-          sales: product.sales || 0,
-          image:
-            product.image_url ||
-            (product.category_id === "1" || product.category_id === "2"
-              ? "☕"
-              : "🥐"),
-        }));
-
-        setProducts(mappedProducts);
-        setTotalPages(data.last_page || 1);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching products:", err.message);
-        setError(err.message);
-        Alert.alert(t("common.error") || "خطأ", err.message);
-      } finally {
-        setLoading(false);
+        throw new Error(
+          errorData.message ||
+            t("admin.fetchProductsError") ||
+            `فشل في جلب المنتجات (Status: ${response.status})`
+        );
       }
-    };
 
-    fetchProducts();
-  }, [currentPage, t]);
+      const data = await response.json();
+      const mappedProducts = data.data.map((product) => ({
+        id: product.id,
+        name: product.name || "منتج بدون اسم",
+        category_id: product.category_id?.toString() || "1",
+        category: product.category?.name || "غير محدد",
+        price: parseFloat(product.price) || 0,
+        description: product.description || product.name || "لا يوجد وصف",
+        stock: product.stock || "0",
+        barcode: product.barcode || "",
+        accept_float: product.accept_float || false,
+        active: product.active || false,
+        show_on_website: product.show_on_website || false,
+        rating: product.rating || 0,
+        sales: product.sales || 0,
+        image:
+          product.main_image_url ||
+          (product.category_id === "1" || product.category_id === "2"
+            ? "☕"
+            : "🥐"),
+        created_at: product.created_at,
+        updated_at: product.updated_at,
+        media: product.media || [],
+      }));
 
+      if (resetData) {
+        setProducts(mappedProducts);
+      } else {
+        setProducts((prevProducts) =>
+          page === 1 ? mappedProducts : [...prevProducts, ...mappedProducts]
+        );
+      }
+
+      setCurrentPage(data.current_page || 1);
+      setTotalPages(data.last_page || 1);
+      setTotalProducts(data.total || 0);
+      setPerPage(data.per_page || 15);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching products:", err.message);
+      setError(err.message);
+      Alert.alert(t("common.error") || "خطأ", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize data on component mount
+  useEffect(() => {
+    fetchProducts(1, true);
+  }, []);
+
+  // Filter products based on search and category
   const filteredProducts = products.filter(
     (product) =>
       (selectedCategory === "all" ||
@@ -210,15 +179,23 @@ const ProductsScreen = () => {
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Get category icon
   const getCategoryIcon = (categoryId) => {
-    if (categoryId === "1" || categoryId === "2") {
-      return "Coffee";
-    } else if (categoryId === "3" || categoryId === "4") {
-      return "Package";
+    switch (categoryId) {
+      case "1":
+        return "Coffee";
+      case "2":
+        return "Coffee";
+      case "3":
+        return "Package";
+      case "4":
+        return "Package";
+      default:
+        return "Coffee";
     }
-    return "Coffee";
   };
 
+  // Render icons
   const renderIcon = (iconName, size = 24, color = "#4e342e") => {
     switch (iconName) {
       case "Coffee":
@@ -260,100 +237,126 @@ const ProductsScreen = () => {
     }
   };
 
-  async function handleAddProduct() {
-    console.log("Add/Edit Product button pressed!");
+  // Form validation
+  const validateForm = () => {
     let hasError = false;
+
+    // Reset errors
     setNameError("");
     setPriceError("");
     setStockError("");
     setBarcodeError("");
+    setDescriptionError("");
 
+    // Name validation
     if (!name.trim()) {
-  setNameError("name is required" || "يجب إدخال اسم المنتج");
-  hasError = true;
-} else if (name.trim().length < 3) {
-  setNameError("name must be at least 3 characters long" || "اسم المنتج يجب أن يكون 3 أحرف على الأقل");
-  hasError = true;
-} else if (/^[0-9\s]+$/.test(name)) {
-  setNameError("name cannot be only numbers" || "اسم المنتج لا يمكن أن يكون أرقام فقط");
-  hasError = true;
-} else if (!/^[\u0600-\u06FFa-zA-Z0-9\s\-()]+$/.test(name)) {
-  setNameError("name contains invalid characters" || "اسم المنتج يحتوي على رموز غير مسموح بها");
-  hasError = true;
-} else {
-  setNameError("");
-}
+      setNameError(t("validation.nameRequired") || "اسم المنتج مطلوب");
+      hasError = true;
+    } else if (name.trim().length < 2) {
+      setNameError(
+        t("validation.nameMinLength") ||
+          "اسم المنتج يجب أن يكون حرفين على الأقل"
+      );
+      hasError = true;
+    } else if (name.trim().length > 100) {
+      setNameError(
+        t("validation.nameMaxLength") || "اسم المنتج يجب أن يكون أقل من 100 حرف"
+      );
+      hasError = true;
+    }
 
+    // Price validation
+    if (!price.trim()) {
+      setPriceError(t("validation.priceRequired") || "السعر مطلوب");
+      hasError = true;
+    } else if (isNaN(price) || parseFloat(price) <= 0) {
+      setPriceError(
+        t("validation.priceInvalid") || "السعر يجب أن يكون رقمًا موجبًا"
+      );
+      hasError = true;
+    } else if (parseFloat(price) > 99999.99) {
+      setPriceError(
+        t("validation.priceMax") || "السعر يجب أن يكون أقل من 99999.99"
+      );
+      hasError = true;
+    }
 
-    if (!price) {
-  setPriceError("price is required" || "السعر مطلوب");
-  hasError = true;
-} else if (isNaN(price)) {
-  setPriceError("price must be a valid number" || "السعر يجب أن يكون رقمًا صالحًا");
-  hasError = true;
-} else if (parseFloat(price) <= 0) {
-  setPriceError("price must be a positive number" || "السعر يجب أن يكون رقمًا موجبًا");
-  hasError = true;
-} else {
-  setPriceError(""); // مفيش أخطاء
-}
+    // Stock validation (optional for some cases)
+    if (stock.trim() && (isNaN(stock) || parseFloat(stock) < 0)) {
+      setStockError(
+        t("validation.stockInvalid") ||
+          "المخزون يجب أن يكون رقمًا موجبًا أو صفر"
+      );
+      hasError = true;
+    }
 
-
-   if (!stock) {
-  setStockError("stock is required" || "المخزون مطلوب");
-  hasError = true;
-} else if (isNaN(stock)) {
-  setStockError("stock must be a valid number" || "المخزون يجب أن يكون رقمًا صحيحًا");
-  hasError = true;
-} else if (parseFloat(stock) < 0) {
-  setStockError("stock must be a positive number" || "المخزون يجب أن يكون رقمًا موجبًا");
-  hasError = true;
-} else {
-  setStockError(""); // لا يوجد خطأ
-}
-
+    // Barcode validation
     if (!barcode.trim()) {
-  setBarcodeError("barcode is required" || "يجب إدخال الباركود");
-  hasError = true;
-} else {
-  setBarcodeError("");
-}
+      setBarcodeError(t("validation.barcodeRequired") || "الباركود مطلوب");
+      hasError = true;
+    } else if (barcode.trim().length < 3) {
+      setBarcodeError(
+        t("validation.barcodeMinLength") ||
+          "الباركود يجب أن يكون 3 أحرف على الأقل"
+      );
+      hasError = true;
+    }
 
+    // Description validation (optional)
+    if (description.trim() && description.trim().length > 500) {
+      setDescriptionError(
+        t("validation.descriptionMaxLength") ||
+          "الوصف يجب أن يكون أقل من 500 حرف"
+      );
+      hasError = true;
+    }
 
-    if (hasError) {
-      console.log("Validation Error:", { name, price, stock, barcode });
+    return !hasError;
+  };
+
+  // Clear form
+  const clearForm = () => {
+    setName("");
+    setPrice("");
+    setCategory("1");
+    setDescription("");
+    setStock("");
+    setBarcode("");
+    setAcceptFloat(true);
+    setShowOnWebsite(true);
+    setIsEditing(false);
+    setEditProductId(null);
+    setNameError("");
+    setPriceError("");
+    setStockError("");
+    setBarcodeError("");
+    setDescriptionError("");
+  };
+
+  // Handle form submission (Add/Edit Product)
+  const handleSubmitProduct = async () => {
+    if (!validateForm()) {
       return;
     }
 
+    setSubmitLoading(true);
     try {
       const token = await AsyncStorage.getItem("authToken");
-      console.log("Retrieved Token for Add/Edit Product:", token);
       if (!token) {
         throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
       }
-
-      const categoryMap = {
-        hot: "1",
-        cold: "2",
-        food: "3",
-        snacks: "4",
-        بن: "2",
-      };
-      const categoryId = categoryMap[category.toLowerCase()] || "1";
 
       const productData = {
         name: name.trim(),
         description: description.trim() || name.trim(),
         price: parseFloat(price).toFixed(2),
-        category_id: categoryId,
-        branch_id: null,
-        stock: parseFloat(stock).toFixed(2),
-        type: "unit",
+        category_id: category,
+        stock: stock.trim() ? parseFloat(stock).toFixed(2) : "0.00",
         barcode: barcode.trim(),
         accept_float: acceptFloat,
+        show_on_website: showOnWebsite,
+        active: stock.trim() ? parseFloat(stock) > 0 : true,
       };
-
-      console.log("Product Data being sent:", productData);
 
       const endpoint = isEditing
         ? `${BASE_URL}/admin/products/${editProductId}`
@@ -369,18 +372,33 @@ const ProductsScreen = () => {
         body: JSON.stringify(productData),
       });
 
-      console.log("Add/Edit Product API Response Status:", response.status);
       const result = await response.json();
-      console.log("Add/Edit Product API Response:", result);
 
       if (!response.ok) {
         if (response.status === 422) {
-          const errorDetails = result.errors
-            ? Object.entries(result.errors)
-                .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
-                .join("; ")
-            : result.message || "البيانات المرسلة غير صالحة";
-          throw new Error(`خطأ 422: ${errorDetails}`);
+          if (result.errors) {
+            Object.entries(result.errors).forEach(([field, messages]) => {
+              const message = Array.isArray(messages) ? messages[0] : messages;
+              switch (field) {
+                case "name":
+                  setNameError(message);
+                  break;
+                case "price":
+                  setPriceError(message);
+                  break;
+                case "stock":
+                  setStockError(message);
+                  break;
+                case "barcode":
+                  setBarcodeError(message);
+                  break;
+                case "description":
+                  setDescriptionError(message);
+                  break;
+              }
+            });
+            return;
+          }
         }
         throw new Error(
           result.message ||
@@ -389,111 +407,49 @@ const ProductsScreen = () => {
         );
       }
 
-      if (isEditing) {
-        setProducts(
-          products.map((item) =>
-            item.id === editProductId
-              ? {
-                  ...item,
-                  name: name.trim(),
-                  category_id: categoryId,
-                  category:
-                    categoryId === "1"
-                      ? "مشروب"
-                      : categoryId === "2"
-                        ? "بن"
-                        : category,
-                  price: parseFloat(price),
-                  description: description.trim() || name.trim(),
-                  stock: parseFloat(stock).toFixed(2),
-                  barcode: barcode.trim(),
-                  accept_float: acceptFloat,
-                  active: parseFloat(stock) > 0,
-                }
-              : item
-          )
-        );
-        Alert.alert(
-          t("admin.editProduct") || "تعديل المنتج",
-          t("admin.productUpdated") || "تم تعديل المنتج بنجاح!"
-        );
-      } else {
-        setProducts([
-          ...products,
-          {
-            id: result.id || Date.now(),
-            name: name.trim(),
-            category_id: categoryId,
-            category:
-              categoryId === "1"
-                ? "مشروب"
-                : categoryId === "2"
-                  ? "بن"
-                  : category,
-            price: parseFloat(price),
-            description: description.trim() || name.trim(),
-            stock: parseFloat(stock).toFixed(2),
-            barcode: barcode.trim(),
-            accept_float: acceptFloat,
-            active: parseFloat(stock) > 0,
-            sales: 0,
-            rating: 0,
-            image: categoryId === "1" || categoryId === "2" ? "☕" : "🥐",
-          },
-        ]);
-        Alert.alert(
-          t("admin.addProduct") || "إضافة منتج",
-          t("admin.addProductMessage") || "تم إضافة المنتج بنجاح!"
-        );
-      }
+      // After successful add/edit, refresh the product list to ensure sync with server
+      await fetchProducts(1, true);
+
+      Alert.alert(
+        t("admin.addProduct") || "إضافة منتج",
+        isEditing
+          ? t("admin.productUpdated") || "تم تعديل المنتج بنجاح!"
+          : t("admin.productAdded") || "تم إضافة المنتج بنجاح!"
+      );
 
       setFormVisible(false);
-      setName("");
-      setPrice("");
-      setCategory("hot");
-      setDescription("");
-      setStock("");
-      setBarcode("");
-      setAcceptFloat(true);
-      setIsEditing(false);
-      setEditProductId(null);
+      clearForm();
     } catch (err) {
-      console.error("Error adding/editing product:", err.message);
+      console.error("Error submitting product:", err.message);
       Alert.alert(
         t("common.error") || "خطأ",
         err.message || t("admin.saveProductError") || "فشل في حفظ المنتج"
       );
+    } finally {
+      setSubmitLoading(false);
     }
-  }
+  };
 
+  // Handle Edit Product
   const handleEditProduct = (product) => {
-    console.log("Edit Product button pressed for:", product.id);
-  // if (!validateForm()) return;
-
-
     setName(product.name);
-    setCategory(
-      product.category_id === "1"
-        ? "hot"
-        : product.category_id === "2"
-          ? "بن"
-          : product.category
-    );
+    setCategory(product.category_id);
     setPrice(product.price.toString());
-    setDescription(product.description);
-    setStock(product.stock.toString());
-    setBarcode(product.barcode);
-    setAcceptFloat(product.accept_float);
+    setDescription(product.description || "");
+    setStock(product.stock?.toString() || "0");
+    setBarcode(product.barcode || "");
+    setAcceptFloat(product.accept_float || true);
+    setShowOnWebsite(product.show_on_website || true);
     setFormVisible(true);
     setIsEditing(true);
     setEditProductId(product.id);
   };
 
+  // Handle Delete Product
   const handleDeleteProduct = async (product) => {
-    console.log("Delete Product button pressed for:", product.id);
     Alert.alert(
-      t("admin.deleteProduct") || "حذف المنتج",
-      t("admin.deleteProductConfirm") || "هل أنت متأكد من حذف المنتج؟",
+      t("common.delete") || "حذف المنتج",
+      t("common.delete") || `هل أنت متأكد من حذف "${product.name}"؟`,
       [
         {
           text: t("common.cancel") || "إلغاء",
@@ -505,7 +461,6 @@ const ProductsScreen = () => {
           onPress: async () => {
             try {
               const token = await AsyncStorage.getItem("authToken");
-              console.log("Retrieved Token for Delete Product:", token);
               if (!token) {
                 throw new Error(
                   t("admin.noToken") || "لم يتم العثور على التوكين"
@@ -524,14 +479,8 @@ const ProductsScreen = () => {
                 }
               );
 
-              console.log(
-                "Delete Product API Response Status:",
-                response.status
-              );
-              const result = await response.json().catch(() => ({}));
-              console.log("Delete Product API Response:", result);
-
               if (!response.ok) {
+                const result = await response.json().catch(() => ({}));
                 throw new Error(
                   result.message ||
                     t("admin.deleteProductError") ||
@@ -539,7 +488,9 @@ const ProductsScreen = () => {
                 );
               }
 
-              setProducts(products.filter((p) => p.id !== product.id));
+              // Refresh the product list after deletion to ensure sync with server
+              await fetchProducts(1, true);
+
               Alert.alert(
                 t("admin.deleteProduct") || "حذف المنتج",
                 t("admin.deleteProductSuccess") || "تم حذف المنتج بنجاح"
@@ -548,7 +499,9 @@ const ProductsScreen = () => {
               console.error("Error deleting product:", err.message);
               Alert.alert(
                 t("common.error") || "خطأ",
-                err.message || t("admin.deleteProductError")
+                err.message ||
+                  t("admin.deleteProductError") ||
+                  "فشل في حذف المنتج"
               );
             }
           },
@@ -557,16 +510,16 @@ const ProductsScreen = () => {
     );
   };
 
-  const handleToggleAvailability = async (product) => {
-    console.log("Toggle Availability button pressed for:", product.id);
+  // Handle Toggle Product Status (Active/Inactive)
+  const handleToggleProductStatus = async (product) => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      console.log("Retrieved Token for Toggle Availability:", token);
       if (!token) {
         throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
       }
 
-      const newStock = parseFloat(product.stock) > 0 ? "0.00" : "1.00";
+      const newStatus = !product.active;
+
       const response = await fetch(`${BASE_URL}/admin/products/${product.id}`, {
         method: "PUT",
         headers: {
@@ -575,58 +528,104 @@ const ProductsScreen = () => {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          stock: newStock,
+          active: newStatus,
         }),
       });
 
-      console.log("Toggle Availability API Response Status:", response.status);
-      const result = await response.json().catch(() => ({}));
-      console.log("Toggle Availability API Response:", result);
-
       if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
         throw new Error(
           result.message ||
-            t("admin.updateStockError") ||
-            `فشل في تحديث المخزون (Status: ${response.status})`
+            t("admin.updateStatusError") ||
+            `فشل في تحديث حالة المنتج (Status: ${response.status})`
         );
       }
 
-      setProducts(
-        products.map((p) =>
-          p.id === product.id
-            ? { ...p, stock: newStock, active: parseFloat(newStock) > 0 }
-            : p
-        )
-      );
+      // Refresh the product list after toggling status
+      await fetchProducts(1, true);
     } catch (err) {
-      console.error("Error toggling availability:", err.message);
+      console.error("Error toggling product status:", err.message);
       Alert.alert(
         t("common.error") || "خطأ",
-        err.message || t("admin.updateStockError")
+        err.message ||
+          t("admin.updateStatusError") ||
+          "فشل في تحديث حالة المنتج"
       );
     }
   };
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
+  // Handle Toggle Website Visibility
+  const handleToggleWebsiteVisibility = async (product) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
+      }
+
+      const newVisibility = !product.show_on_website;
+
+      const response = await fetch(`${BASE_URL}/admin/products/${product.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          show_on_website: newVisibility,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(
+          result.message ||
+            t("admin.updateVisibilityError") ||
+            `فشل في تحديث ظهور المنتج على الموقع (Status: ${response.status})`
+        );
+      }
+
+      // Refresh the product list after toggling visibility
+      await fetchProducts(1, true);
+    } catch (err) {
+      console.error("Error toggling website visibility:", err.message);
+      Alert.alert(
+        t("common.error") || "خطأ",
+        err.message ||
+          t("admin.updateVisibilityError") ||
+          "فشل في تحديث ظهور المنتج"
+      );
     }
   };
 
+  // Handle Page Change for Pagination
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      fetchProducts(newPage, true);
+    }
+  };
+
+  // Handle Refresh Data
+  const handleRefresh = () => {
+    setCurrentPage(1);
+    fetchProducts(1, true);
+  };
+
+  // Render Product Card Component
   const renderProductCard = (product) => {
     const isImageUrl = product.image?.startsWith("http");
-    const isAvailable = product.active && parseFloat(product.stock) > 0;
+    const isAvailable = product.active && parseFloat(product.stock || 0) > 0;
 
     return (
-      <View>
+      <View key={product.id} style={styles.productCardContainer}>
         {viewMode === "grid" ? (
-          <TouchableOpacity key={product.id} style={styles.gridCard}>
+          <TouchableOpacity style={styles.gridCard}>
             <View style={styles.gridCardHeader}>
               {isImageUrl ? (
                 <Image
                   source={{ uri: product.image }}
-                  style={{ width: 32, height: 32 }}
-                  resizeMode="contain"
+                  style={styles.productImage}
+                  resizeMode="cover"
                 />
               ) : (
                 <Text style={styles.productEmoji}>
@@ -657,11 +656,17 @@ const ProductsScreen = () => {
                 </Text>
               </View>
             </View>
+
             <View style={styles.gridCardContent}>
-              <Text style={styles.gridCardName}>{product.name}</Text>
-              <Text style={styles.gridCardDescription} numberOfLines={2}>
-                {product.description}
+              <Text style={styles.gridCardName} numberOfLines={2}>
+                {product.name}
               </Text>
+              <Text style={styles.gridCardCategory}>{product.category}</Text>
+              {product.description && (
+                <Text style={styles.gridCardDescription} numberOfLines={2}>
+                  {product.description}
+                </Text>
+              )}
               <View style={styles.gridCardPrice}>
                 <Text style={styles.gridCardPriceText}>
                   ${parseFloat(product.price).toFixed(2)}
@@ -675,17 +680,52 @@ const ProductsScreen = () => {
                   <Text
                     style={[
                       styles.gridCardStatValue,
-                      parseFloat(product.stock) === 0 && styles.stockEmptyText,
+                      parseFloat(product.stock || 0) === 0 &&
+                        styles.stockEmptyText,
                     ]}
                   >
-                    {product.stock}
+                    {product.stock || "0"}
                   </Text>
                 </View>
                 <View style={styles.gridCardStat}>
                   <Text style={styles.gridCardStatLabel}>
-                    {t("admin.rating") || "التقييم"}
+                    {t("admin.barcode") || "الباركود"}
                   </Text>
-                  <Text style={styles.gridCardStatValue}>{product.rating}</Text>
+                  <Text style={styles.gridCardStatValue}>
+                    {product.barcode || "غير محدد"}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.gridCardFlags}>
+                <View style={styles.gridCardFlag}>
+                  <Text style={styles.gridCardFlagLabel}>
+                    {t("admin.acceptFloat") || "كسر"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.gridCardFlagValue,
+                      product.accept_float
+                        ? styles.flagActive
+                        : styles.flagInactive,
+                    ]}
+                  >
+                    {product.accept_float ? "نعم" : "لا"}
+                  </Text>
+                </View>
+                <View style={styles.gridCardFlag}>
+                  <Text style={styles.gridCardFlagLabel}>
+                    {t("admin.showOnWebsite") || "الموقع"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.gridCardFlagValue,
+                      product.show_on_website
+                        ? styles.flagActive
+                        : styles.flagInactive,
+                    ]}
+                  >
+                    {product.show_on_website ? "ظاهر" : "مخفي"}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -702,22 +742,27 @@ const ProductsScreen = () => {
               >
                 {renderIcon("Trash2", 16, "#fff")}
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.gridActionButton, styles.toggleGridButton]}
+                onPress={() => handleToggleProductStatus(product)}
+              >
+                {renderIcon(
+                  product.active ? "CheckCircle" : "XCircle",
+                  16,
+                  "#fff"
+                )}
+              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         ) : (
-          <View key={product.id} style={styles.listCard}>
+          <View style={styles.listCard}>
             <View style={styles.listCardHeader}>
               <View style={styles.listCardLeft}>
                 {isImageUrl ? (
                   <Image
                     source={{ uri: product.image }}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      marginRight: isRTL ? 0 : 16,
-                      marginLeft: isRTL ? 16 : 0,
-                    }}
-                    resizeMode="contain"
+                    style={styles.listProductImage}
+                    resizeMode="cover"
                   />
                 ) : (
                   <Text style={styles.listProductEmoji}>
@@ -728,9 +773,14 @@ const ProductsScreen = () => {
                 )}
                 <View style={styles.listCardInfo}>
                   <Text style={styles.listCardName}>{product.name}</Text>
-                  <Text style={styles.listCardDescription}>
-                    {product.description}
+                  <Text style={styles.listCardCategory}>
+                    {product.category}
                   </Text>
+                  {product.description && (
+                    <Text style={styles.listCardDescription} numberOfLines={2}>
+                      {product.description}
+                    </Text>
+                  )}
                 </View>
               </View>
               <View style={styles.listCardRight}>
@@ -739,43 +789,103 @@ const ProductsScreen = () => {
                     ${parseFloat(product.price).toFixed(2)}
                   </Text>
                 </View>
-                <Switch
-                  value={isAvailable}
-                  onValueChange={() => handleToggleAvailability(product)}
-                  trackColor={{ false: "#e0e0e0", true: "#4CAF50" }}
-                  thumbColor={isAvailable ? "#fff" : "#f4f3f4"}
-                />
+                <View style={styles.listCardSwitches}>
+                  <View style={styles.switchContainer}>
+                    <Text style={styles.switchLabel}>
+                      {t("admin.active") || "نشط"}
+                    </Text>
+                    <Switch
+                      value={product.active}
+                      onValueChange={() => handleToggleProductStatus(product)}
+                      trackColor={{ false: "#e0e0e0", true: "#4CAF50" }}
+                      thumbColor={product.active ? "#fff" : "#f4f3f4"}
+                    />
+                  </View>
+                  <View style={styles.switchContainer}>
+                    <Text style={styles.switchLabel}>
+                      {t("common.website") || "موقع"}
+                    </Text>
+                    <Switch
+                      value={product.show_on_website}
+                      onValueChange={() =>
+                        handleToggleWebsiteVisibility(product)
+                      }
+                      trackColor={{ false: "#e0e0e0", true: "#2196F3" }}
+                      thumbColor={product.show_on_website ? "#fff" : "#f4f3f4"}
+                    />
+                  </View>
+                </View>
               </View>
             </View>
             <View style={styles.listCardDetails}>
-              <View style={styles.listCardStat}>
-                <Text style={styles.listCardStatLabel}>
-                  {t("admin.stock") || "المخزون"}
-                </Text>
-                <Text
-                  style={[
-                    styles.listCardStatValue,
-                    parseFloat(product.stock) === 0 && styles.stockEmptyText,
-                  ]}
-                >
-                  {product.stock} {t("admin.units") || "وحدة"}
-                </Text>
+              <View style={styles.listCardDetailRow}>
+                <View style={styles.listCardStat}>
+                  <Text style={styles.listCardStatLabel}>
+                    {t("admin.stock") || "المخزون"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.listCardStatValue,
+                      parseFloat(product.stock || 0) === 0 &&
+                        styles.stockEmptyText,
+                    ]}
+                  >
+                    {product.stock || "0"} {t("admin.units") || "وحدة"}
+                  </Text>
+                </View>
+                <View style={styles.listCardStat}>
+                  <Text style={styles.listCardStatLabel}>
+                    {t("admin.barcode") || "الباركود"}
+                  </Text>
+                  <Text style={styles.listCardStatValue}>
+                    {product.barcode || t("admin.notSet") || "غير محدد"}
+                  </Text>
+                </View>
+                <View style={styles.listCardStat}>
+                  <Text style={styles.listCardStatLabel}>
+                    {t("admin.acceptFloat") || "يقبل كسر"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.listCardStatValue,
+                      product.accept_float
+                        ? styles.flagActive
+                        : styles.flagInactive,
+                    ]}
+                  >
+                    {product.accept_float
+                      ? t("common.yes") || "نعم"
+                      : t("common.no") || "لا"}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.listCardStat}>
-                <Text style={styles.listCardStatLabel}>
-                  {t("admin.rating") || "التقييم"}
-                </Text>
-                <Text style={styles.listCardStatValue}>
-                  {product.rating}/5.0
-                </Text>
-              </View>
-              <View style={styles.listCardStat}>
-                <Text style={styles.listCardStatLabel}>
-                  {t("admin.sales") || "المبيعات"}
-                </Text>
-                <Text style={styles.listCardStatValue}>
-                  {product.sales} {t("admin.orders") || "طلب"}
-                </Text>
+              <View style={styles.listCardDetailRow}>
+                <View style={styles.listCardStat}>
+                  <Text style={styles.listCardStatLabel}>
+                    {t("admin.createdAt") || "تاريخ الإنشاء"}
+                  </Text>
+                  <Text style={styles.listCardStatValue}>
+                    {product.created_at
+                      ? new Date(product.created_at).toLocaleDateString("ar-EG")
+                      : "غير محدد"}
+                  </Text>
+                </View>
+                <View style={styles.listCardStat}>
+                  <Text style={styles.listCardStatLabel}>
+                    {t("supervisor.lastUpdated") || "آخر تحديث"}
+                  </Text>
+                  <Text style={styles.listCardStatValue}>
+                    {product.updated_at
+                      ? new Date(product.updated_at).toLocaleDateString("ar-EG")
+                      : "غير محدد"}
+                  </Text>
+                </View>
+                <View style={styles.listCardStat}>
+                  <Text style={styles.listCardStatLabel}>
+                    {t("admin.adminId") || "المعرف"}
+                  </Text>
+                  <Text style={styles.listCardStatValue}>#{product.id}</Text>
+                </View>
               </View>
             </View>
             <View style={styles.listCardActions}>
@@ -784,7 +894,7 @@ const ProductsScreen = () => {
                 onPress={() => handleEditProduct(product)}
               >
                 {renderIcon("Edit", 16, "#fff")}
-                <Text style={[styles.listActionText, styles.editListText]}>
+                <Text style={styles.listActionText}>
                   {t("common.edit") || "تعديل"}
                 </Text>
               </TouchableOpacity>
@@ -793,7 +903,7 @@ const ProductsScreen = () => {
                 onPress={() => handleDeleteProduct(product)}
               >
                 {renderIcon("Trash2", 16, "#fff")}
-                <Text style={[styles.listActionText, styles.deleteListText]}>
+                <Text style={styles.listActionText}>
                   {t("common.delete") || "حذف"}
                 </Text>
               </TouchableOpacity>
@@ -804,475 +914,56 @@ const ProductsScreen = () => {
     );
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "#f7f3ef",
-    },
-    header: {
-      paddingTop: 60,
-      paddingBottom: 28,
-      paddingHorizontal: 20,
-      backgroundColor: "#8d6e63",
-      borderBottomLeftRadius: 30,
-      borderBottomRightRadius: 30,
-      elevation: 8,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-    },
-    headerTitle: {
-      fontSize: 32,
-      fontWeight: "bold",
-      color: "#fff",
-      marginBottom: 8,
-      textAlign: isRTL ? "right" : "left",
-    },
-    headerSubtitle: {
-      color: "#f0ebe7",
-      fontSize: 18,
-      textAlign: isRTL ? "right" : "left",
-    },
-    scrollContainer: {
-      flex: 1,
-      paddingHorizontal: 16,
-    },
-    searchContainer: {
-      marginVertical: 20,
-    },
-    searchInputContainer: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      alignItems: "center",
-      backgroundColor: "#fffaf5",
-      borderRadius: 20,
-      borderWidth: 2,
-      borderColor: "#e5d4c0",
-      paddingHorizontal: 20,
-      paddingVertical: 8,
-      elevation: 4,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 4,
-      minHeight: 56,
-    },
-    searchTextInput: {
-      flex: 1,
-      fontSize: 17,
-      color: "#4e342e",
-      textAlign: isRTL ? "right" : "left",
-      paddingVertical: 6,
-      fontWeight: "500",
-    },
-    filterContainer: {
-      marginBottom: 20,
-    },
-    filterHeader: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16,
-    },
-    filterTitle: {
-      fontSize: 19,
-      fontWeight: "700",
-      color: "#4e342e",
-      marginBottom: 16,
-      textAlign: isRTL ? "right" : "left",
-      letterSpacing: 0.3,
-    },
-    viewModeContainer: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      backgroundColor: "#fffaf5",
-      borderRadius: 12,
-      padding: 4,
-      elevation: 3,
-    },
-    viewModeButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
-    },
-    viewModeButtonActive: {
-      backgroundColor: "#8d6e63",
-    },
-    viewModeButtonInactive: {
-      backgroundColor: "transparent",
-    },
-    filterButtonsContainer: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      gap: 10,
-    },
-    filterButton: {
-      flex: 1,
-      paddingVertical: 14,
-      paddingHorizontal: 20,
-      alignItems: "center",
-      borderRadius: 16,
-      borderWidth: 2,
-      borderColor: "#e5d4c0",
-      minHeight: 48,
-      elevation: 2,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      flexDirection: isRTL ? "row-reverse" : "row",
-    },
-    filterButtonActive: {
-      backgroundColor: "#8d6e63",
-      borderColor: "#8d6e63",
-      elevation: 4,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-    },
-    filterButtonInactive: {
-      backgroundColor: "#fffaf5",
-      borderColor: "#e5d4c0",
-    },
-    filterButtonText: {
-      fontSize: 14,
-      fontWeight: "600",
-      marginRight: isRTL ? 0 : 8,
-      marginLeft: isRTL ? 8 : 0,
-    },
-    filterButtonTextActive: {
-      color: "#fff",
-    },
-    filterButtonTextInactive: {
-      color: "#4e342e",
-    },
-    addButton: {
-      backgroundColor: "#8d6e63",
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 16,
-      flexDirection: isRTL ? "row-reverse" : "row",
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: 16,
-      elevation: 4,
-    },
-    addButtonText: {
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "600",
-      marginRight: isRTL ? 0 : 8,
-      marginLeft: isRTL ? 8 : 0,
-    },
-    productsContainer: {
-      flex: 1,
-    },
-    gridContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
-      gap: 16,
-    },
-    listContainer: {
-      gap: 16,
-    },
-    gridCard: {
-      width: (width - 48) / 2,
-      backgroundColor: "#fffaf5",
-      borderRadius: 20,
-      padding: 16,
-      elevation: 4,
-      borderWidth: 1,
-      borderColor: "#e5d4c0",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-    },
-    gridCardHeader: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 12,
-    },
-    productEmoji: {
-      fontSize: 32,
-    },
-    gridCardBadgeAvailable: {
-      backgroundColor: "#e8f5e8",
-      padding: 12,
-      borderRadius: 5,
-    },
-    gridCardBadgeUnavailable: {
-      backgroundColor: "#fdecea",
-      padding: 12,
-      borderRadius: 5,
-    },
-    gridCardBadgeTextAvailable: {
-      color: "#27ae60",
-    },
-    gridCardBadgeTextUnavailable: {
-      color: "#c0392b",
-    },
-    gridCardContent: {
-      flex: 1,
-    },
-    gridCardName: {
-      fontSize: 16,
-      fontWeight: "bold",
-      color: "#4e342e",
-      marginBottom: 6,
-      textAlign: isRTL ? "right" : "left",
-    },
-    gridCardDescription: {
-      fontSize: 12,
-      color: "#6b4f42",
-      textAlign: isRTL ? "right" : "left",
-      lineHeight: 16,
-      marginBottom: 12,
-    },
-    gridCardPrice: {
-      backgroundColor: "#e8f5e8",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 15,
-      alignSelf: "flex-start",
-      marginBottom: 12,
-      borderWidth: 2,
-      borderColor: "#4caf50",
-    },
-    gridCardPriceText: {
-      fontSize: 14,
-      fontWeight: "bold",
-      color: "#2e7d32",
-    },
-    gridCardStats: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      justifyContent: "space-between",
-      marginBottom: 12,
-    },
-    gridCardStat: {
-      alignItems: "center",
-    },
-    gridCardStatLabel: {
-      fontSize: 10,
-      color: "#8d6e63",
-      fontWeight: "500",
-    },
-    gridCardStatValue: {
-      fontSize: 12,
-      fontWeight: "bold",
-      color: "#4e342e",
-    },
-    stockEmptyText: {
-      color: "#f44336",
-    },
-    gridCardActions: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      gap: 8,
-    },
-    gridActionButton: {
-      flex: 1,
-      paddingVertical: 8,
-      borderRadius: 12,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    editGridButton: {
-      backgroundColor: "#2196F3",
-    },
-    deleteGridButton: {
-      backgroundColor: "#f44336",
-    },
-    listCard: {
-      backgroundColor: "#fffaf5",
-      borderRadius: 20,
-      padding: 20,
-      elevation: 4,
-      borderWidth: 1,
-      borderColor: "#e5d4c0",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-    },
-    listCardHeader: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16,
-    },
-    listCardLeft: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      alignItems: "center",
-      flex: 1,
-    },
-    listProductEmoji: {
-      fontSize: 40,
-      marginRight: isRTL ? 0 : 16,
-      marginLeft: isRTL ? 16 : 0,
-    },
-    listCardInfo: {
-      flex: 1,
-    },
-    listCardName: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: "#4e342e",
-      marginBottom: 4,
-      textAlign: isRTL ? "right" : "left",
-    },
-    listCardDescription: {
-      fontSize: 14,
-      color: "#6b4f42",
-      textAlign: isRTL ? "right" : "left",
-    },
-    listCardRight: {
-      alignItems: "flex-end",
-    },
-    listCardPrice: {
-      backgroundColor: "#e8f5e8",
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-      marginBottom: 12,
-      borderWidth: 2,
-      borderColor: "#4caf50",
-    },
-    listCardPriceText: {
-      fontSize: 16,
-      fontWeight: "bold",
-      color: "#2e7d32",
-    },
-    listCardDetails: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      justifyContent: "space-around",
-      backgroundColor: "#f7f3ef",
-      borderRadius: 15,
-      padding: 16,
-      marginBottom: 16,
-    },
-    listCardStat: {
-      alignItems: "center",
-    },
-    listCardStatLabel: {
-      fontSize: 12,
-      color: "#8d6e63",
-      fontWeight: "500",
-      marginBottom: 4,
-    },
-    listCardStatValue: {
-      fontSize: 14,
-      fontWeight: "bold",
-      color: "#4e342e",
-    },
-    listCardActions: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      gap: 12,
-    },
-    listActionButton: {
-      flex: 1,
-      flexDirection: isRTL ? "row-reverse" : "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 12,
-      borderRadius: 15,
-    },
-    editListButton: {
-      backgroundColor: "#2196F3",
-    },
-    deleteListButton: {
-      backgroundColor: "#f44336",
-    },
-    listActionText: {
-      fontSize: 14,
-      fontWeight: "600",
-      marginRight: isRTL ? 0 : 6,
-      marginLeft: isRTL ? 6 : 0,
-    },
-    editListText: {
-      color: "#fff",
-    },
-    deleteListText: {
-      color: "#fff",
-    },
-    emptyState: {
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 60,
-    },
-    emptyStateText: {
-      fontSize: 16,
-      color: "#6b4f42",
-      textAlign: "center",
-    },
-    inputField: {
-      backgroundColor: "#fff",
-      borderWidth: 1,
-      borderColor: "#ddd",
-      padding: 12,
-      borderRadius: 10,
-      fontSize: 16,
-      color: "#4e342e",
-      marginBottom: 12,
-    },
-    paginationContainer: {
-      flexDirection: isRTL ? "row-reverse" : "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-    },
-    paginationButton: {
-      backgroundColor: "#8d6e63",
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 12,
-      opacity: 1,
-    },
-    paginationButtonDisabled: {
-      opacity: 0.5,
-    },
-    pageInfo: {
-      fontSize: 16,
-      color: "#4e342e",
-      fontWeight: "500",
-    },
-    errorText: {
-  color: "red",
-  fontSize: 12,
-  marginLeft: 7,
-  marginBottom: 8,
-},
-  });
-
+  // Main render return
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          {t("admin.productsManagement") || "إدارة المنتجات"}
-        </Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>
+            {t("admin.productsManagement") || "إدارة المنتجات"}
+          </Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={handleRefresh}
+          >
+            {renderIcon("ChevronRight", 24, "#fff")}
+          </TouchableOpacity>
+        </View>
         <Text style={styles.headerSubtitle}>
-          {t("admin.productsSubtitle") || "إدارة قائمة المنتجات"}
+          {t("admin.totalProducts") || "إجمالي المنتجات"}: {totalProducts}
         </Text>
       </View>
 
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={handleRefresh}
       >
+        {/* Search Container */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
             {renderIcon("Search", 20, "#6b4f42")}
             <TextInput
               style={styles.searchTextInput}
-              placeholder={t("admin.searchProducts") || "ابحث عن المنتجات"}
+              placeholder={t("admin.searchProducts") || "ابحث عن المنتجات..."}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="#8d6e63"
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                style={styles.clearSearchButton}
+              >
+                {renderIcon("XCircle", 20, "#8d6e63")}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
+        {/* Filter Container */}
         <View style={styles.filterContainer}>
           <View style={styles.filterHeader}>
             <Text style={styles.filterTitle}>
@@ -1311,7 +1002,6 @@ const ProductsScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -1348,9 +1038,13 @@ const ProductsScreen = () => {
           </ScrollView>
         </View>
 
+        {/* Add Product Button */}
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => setFormVisible(true)}
+          onPress={() => {
+            clearForm();
+            setFormVisible(true);
+          }}
         >
           {renderIcon("Plus", 22, "#fff")}
           <Text style={styles.addButtonText}>
@@ -1358,25 +1052,32 @@ const ProductsScreen = () => {
           </Text>
         </TouchableOpacity>
 
+        {/* Products Container */}
         <View style={styles.productsContainer}>
           {loading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="large" color="#8d6e63" />
               <Text style={styles.emptyStateText}>
-                {t("admin.loading") || "جاري التحميل..."}
+                {t("common.loading") || "جاري التحميل..."}
               </Text>
             </View>
           ) : error ? (
             <View style={styles.emptyState}>
-              <Text style={{ fontSize: 64 }}>❌</Text>
+              <Text style={styles.errorEmoji}>❌</Text>
               <Text style={styles.emptyStateText}>{error}</Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={handleRefresh}
+              >
+                <Text style={styles.retryButtonText}>
+                  {t("common.retry") || "إعادة المحاولة"}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : filteredProducts.length > 0 ? (
             viewMode === "grid" ? (
               <View style={styles.gridContainer}>
-                {filteredProducts.map((product) => (
-                  <View key={product.id}>{renderProductCard(product)}</View>
-                ))}
+                {filteredProducts.map(renderProductCard)}
               </View>
             ) : (
               <View style={styles.listContainer}>
@@ -1385,14 +1086,31 @@ const ProductsScreen = () => {
             )
           ) : (
             <View style={styles.emptyState}>
-              <Text style={{ fontSize: 64 }}>☕</Text>
+              <Text style={styles.emptyEmoji}>☕</Text>
               <Text style={styles.emptyStateText}>
-                {t("admin.noProductsFound") || "لم يتم العثور على منتجات"}
+                {searchQuery
+                  ? t("admin.noProductsMatchSearch") ||
+                    "لم يتم العثور على منتجات تطابق البحث"
+                  : t("admin.noProductsFound") || "لم يتم العثور على منتجات"}
               </Text>
+              {searchQuery && (
+                <TouchableOpacity
+                  style={styles.clearFiltersButton}
+                  onPress={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("all");
+                  }}
+                >
+                  <Text style={styles.clearFiltersButtonText}>
+                    {t("admin.clearFilters") || "إزالة التصفية"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
 
+        {/* Pagination */}
         {totalPages > 1 && (
           <View style={styles.paginationContainer}>
             <TouchableOpacity
@@ -1404,11 +1122,20 @@ const ProductsScreen = () => {
               disabled={currentPage === 1}
             >
               {renderIcon("ChevronLeft", 20, "#fff")}
+              <Text style={styles.paginationButtonText}>
+                {t("common.previous") || "السابق"}
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.pageInfo}>
-              {t("worker.page") || "الصفحة"} {currentPage}{" "}
-              {t("worker.of") || "من"} {totalPages}
-            </Text>
+            <View style={styles.pageInfoContainer}>
+              <Text style={styles.pageInfo}>
+                {t("worker.page") || "صفحة"} {currentPage}{" "}
+                {t("worker.of") || "من"} {totalPages}
+              </Text>
+              <Text style={styles.pageSubInfo}>
+                ({filteredProducts.length} {t("worker.of") || "من"}{" "}
+                {totalProducts} {t("admin.products") || "منتج"})
+              </Text>
+            </View>
             <TouchableOpacity
               style={[
                 styles.paginationButton,
@@ -1417,123 +1144,243 @@ const ProductsScreen = () => {
               onPress={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
+              <Text style={styles.paginationButtonText}>
+                {t("common.next") || "التالي"}
+              </Text>
               {renderIcon("ChevronRight", 20, "#fff")}
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
 
+      {/* Add/Edit Product Form Modal */}
       {formVisible && (
-        <View
-          style={{
-            backgroundColor: "#fff",
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 170,
-            elevation: 4,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
-            {isEditing
-              ? t("admin.editProduct") || "تعديل المنتج"
-              : t("admin.addNewProduct") || "إضافة منتج جديد"}
-          </Text>
-          <TextInput
-            placeholder={t("admin.productName") || "اسم المنتج"}
-            value={name}
-            onChangeText={(text) => {
-              setName(text);
-              if (text.trim()) setNameError("");
-            }}
-            style={styles.inputField}
-          />
-          {nameError ? (
-            <Text style={styles.errorText}>
-              {nameError}
-            </Text>
-          ) : null}
-          <TextInput
-            placeholder={t("admin.price") || "السعر"}
-            value={price}
-            onChangeText={(text) => {
-              setPrice(text);
-              if (!isNaN(text) && parseFloat(text) > 0) setPriceError("");
-            }}
-            keyboardType="numeric"
-            style={styles.inputField}
-          />
-          {priceError ? (
-            <Text style={styles.errorText}>
-              {priceError}
-            </Text>
-          ) : null}
-          <TextInput
-            placeholder={t("admin.stock") || "المخزون"}
-            value={stock}
-            onChangeText={(text) => {
-              setStock(text);
-              if (!isNaN(text) && parseFloat(text) >= 0) setStockError("");
-            }}
-            keyboardType="numeric"
-            style={styles.inputField}
-          />
-          {stockError ? (
-            <Text style={styles.errorText}>
-              {stockError}
-            </Text>
-          ) : null}
-
-          <TextInput
-            placeholder= {"Barcode"  || "الباركود"}
-            value={barcode}
-            onChangeText={(text) => {
-              setBarcode(text);
-              if (text.trim()) setBarcodeError("");
-            }}
-            style={styles.inputField}
-          />
-          {barcodeError ? (
-            <Text style={styles.errorText}>
-              {barcodeError}
-            </Text>
-          ) : null}
-
-          <TextInput
-            placeholder={t("admin.productDescription") || "الوصف"}
-            value={description}
-            onChangeText={setDescription}
-            style={styles.inputField}
-          />
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              marginTop: 12,
-            }}
-          >
-            <TouchableOpacity
-              onPress={handleAddProduct}
-              style={[styles.addButton, { flex: 1, marginRight: 6 }]}
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <ScrollView
+              style={styles.modalContent}
+              showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.addButtonText}>
-                {t("common.save") || "حفظ"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setFormVisible(false)}
-              style={[
-                styles.addButton,
-                { flex: 1, backgroundColor: "#aaa", marginLeft: 6 },
-              ]}
-            >
-              <Text style={styles.addButtonText}>
-                {t("common.cancel") || "إلغاء"}
-              </Text>
-            </TouchableOpacity>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {isEditing
+                    ? t("admin.editProduct") || "تعديل المنتج"
+                    : t("admin.addNewProduct") || "إضافة منتج جديد"}
+                </Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => {
+                    setFormVisible(false);
+                    clearForm();
+                  }}
+                >
+                  {renderIcon("XCircle", 24, "#8d6e63")}
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t("admin.productName") || "اسم المنتج"} *
+                </Text>
+                <TextInput
+                  style={[
+                    styles.inputField,
+                    nameError && styles.inputFieldError,
+                  ]}
+                  placeholder={t("admin.productName") || "أدخل اسم المنتج"}
+                  value={name}
+                  onChangeText={(text) => {
+                    setName(text);
+                    if (text.trim()) setNameError("");
+                  }}
+                  placeholderTextColor="#8d6e63"
+                />
+                {nameError ? (
+                  <Text style={styles.errorText}>{nameError}</Text>
+                ) : null}
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t("admin.productCategory") || "الفئة"} *
+                </Text>
+                <View style={styles.categorySelector}>
+                  {categories
+                    .filter((cat) => cat.id !== "all")
+                    .map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          styles.categoryOption,
+                          category === cat.id && styles.categoryOptionSelected,
+                        ]}
+                        onPress={() => setCategory(cat.id)}
+                      >
+                        {renderIcon(
+                          getCategoryIcon(cat.id),
+                          20,
+                          category === cat.id ? "#fff" : "#8d6e63"
+                        )}
+                        <Text
+                          style={[
+                            styles.categoryOptionText,
+                            category === cat.id &&
+                              styles.categoryOptionTextSelected,
+                          ]}
+                        >
+                          {cat.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t("admin.price") || "السعر"} *
+                </Text>
+                <TextInput
+                  style={[
+                    styles.inputField,
+                    priceError && styles.inputFieldError,
+                  ]}
+                  placeholder={t("admin.productPrice") || "أدخل السعر"}
+                  value={price}
+                  onChangeText={(text) => {
+                    setPrice(text);
+                    if (!isNaN(text) && parseFloat(text) > 0) setPriceError("");
+                  }}
+                  keyboardType="numeric"
+                  placeholderTextColor="#8d6e63"
+                />
+                {priceError ? (
+                  <Text style={styles.errorText}>{priceError}</Text>
+                ) : null}
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t("admin.stock") || "المخزون"}
+                </Text>
+                <TextInput
+                  style={[
+                    styles.inputField,
+                    stockError && styles.inputFieldError,
+                  ]}
+                  placeholder={t("admin.stock") || "أدخل كمية المخزون"}
+                  value={stock}
+                  onChangeText={(text) => {
+                    setStock(text);
+                    if (!text.trim() || (!isNaN(text) && parseFloat(text) >= 0))
+                      setStockError("");
+                  }}
+                  keyboardType="numeric"
+                  placeholderTextColor="#8d6e63"
+                />
+                {stockError ? (
+                  <Text style={styles.errorText}>{stockError}</Text>
+                ) : null}
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t("admin.barcode") || "الباركود"} *
+                </Text>
+                <TextInput
+                  style={[
+                    styles.inputField,
+                    barcodeError && styles.inputFieldError,
+                  ]}
+                  placeholder={t("admin.barcode") || "أدخل الباركود"}
+                  value={barcode}
+                  onChangeText={(text) => {
+                    setBarcode(text);
+                    if (text.trim()) setBarcodeError("");
+                  }}
+                  placeholderTextColor="#8d6e63"
+                />
+                {barcodeError ? (
+                  <Text style={styles.errorText}>{barcodeError}</Text>
+                ) : null}
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {t("admin.productDescription") || "الوصف"}
+                </Text>
+                <TextInput
+                  style={[
+                    styles.textareaField,
+                    descriptionError && styles.inputFieldError,
+                  ]}
+                  placeholder={
+                    t("admin.productDescription") || "أدخل وصف المنتج (اختياري)"
+                  }
+                  value={description}
+                  onChangeText={(text) => {
+                    setDescription(text);
+                    if (!text.trim() || text.trim().length <= 500)
+                      setDescriptionError("");
+                  }}
+                  multiline
+                  numberOfLines={4}
+                  placeholderTextColor="#8d6e63"
+                />
+                {descriptionError ? (
+                  <Text style={styles.errorText}>{descriptionError}</Text>
+                ) : null}
+              </View>
+              <View style={styles.optionsContainer}>
+                <View style={styles.optionRow}>
+                  <Text style={styles.optionLabel}>
+                    {t("admin.acceptFloat") || "يقبل كسور"}
+                  </Text>
+                  <Switch
+                    value={acceptFloat}
+                    onValueChange={setAcceptFloat}
+                    trackColor={{ false: "#e0e0e0", true: "#4CAF50" }}
+                    thumbColor={acceptFloat ? "#fff" : "#f4f3f4"}
+                  />
+                </View>
+                <View style={styles.optionRow}>
+                  <Text style={styles.optionLabel}>
+                    {t("admin.showOnWebsite") || "ظاهر على الموقع"}
+                  </Text>
+                  <Switch
+                    value={showOnWebsite}
+                    onValueChange={setShowOnWebsite}
+                    trackColor={{ false: "#e0e0e0", true: "#2196F3" }}
+                    thumbColor={showOnWebsite ? "#fff" : "#f4f3f4"}
+                  />
+                </View>
+              </View>
+              <View style={styles.formActions}>
+                <TouchableOpacity
+                  style={[styles.formActionButton, styles.cancelButton]}
+                  onPress={() => {
+                    setFormVisible(false);
+                    clearForm();
+                  }}
+                  disabled={submitLoading}
+                >
+                  <Text style={styles.cancelButtonText}>
+                    {t("common.cancel") || "إلغاء"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.formActionButton, styles.saveButton]}
+                  onPress={handleSubmitProduct}
+                  disabled={submitLoading}
+                >
+                  {submitLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      {renderIcon(isEditing ? "Edit" : "Plus", 18, "#fff")}
+                      <Text style={styles.saveButtonText}>
+                        {isEditing
+                          ? t("common.update") || "تحديث"
+                          : t("common.save") || "حفظ"}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       )}
@@ -1541,4 +1388,675 @@ const ProductsScreen = () => {
   );
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f7f3ef",
+    direction: "rtl",
+  },
+  header: {
+    padding: 20,
+    backgroundColor: "#fffaf5",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5d4c0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#4e342e",
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#6b4f42",
+    marginTop: 8,
+  },
+  refreshButton: {
+    backgroundColor: "#8d6e63",
+    padding: 10,
+    borderRadius: 12,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  searchContainer: {
+    padding: 16,
+    backgroundColor: "#fffaf5",
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5d4c0",
+    borderRadius: 25,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchTextInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#4e342e",
+    marginHorizontal: 8,
+  },
+  clearSearchButton: {
+    padding: 4,
+  },
+  filterContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fffaf5",
+    borderTopWidth: 1,
+    borderTopColor: "#e5d4c0",
+  },
+  filterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4e342e",
+  },
+  viewModeContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  viewModeButton: {
+    padding: 8,
+    borderRadius: 12,
+  },
+  viewModeButtonActive: {
+    backgroundColor: "#8d6e63",
+  },
+  viewModeButtonInactive: {
+    backgroundColor: "#e0e0e0",
+  },
+  filterButtonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: "#8d6e63",
+  },
+  filterButtonInactive: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5d4c0",
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  filterButtonTextActive: {
+    color: "#fff",
+  },
+  filterButtonTextInactive: {
+    color: "#2c3e50",
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#4CAF50",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    gap: 8,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  productsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  listContainer: {
+    flexDirection: "column",
+  },
+  gridCard: {
+    width: (width - 48) / 2,
+    backgroundColor: "#fffaf5",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e5d4c0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  gridCardHeader: {
+    alignItems: "center",
+    marginBottom: 12,
+    position: "relative",
+  },
+  productImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  productEmoji: {
+    fontSize: 48,
+  },
+  gridCardBadge: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#fff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  gridCardBadgeAvailable: {
+    borderColor: "#4caf50",
+  },
+  gridCardBadgeUnavailable: {
+    borderColor: "#f44336",
+  },
+  gridCardBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  gridCardBadgeTextAvailable: {
+    color: "#4caf50",
+  },
+  gridCardBadgeTextUnavailable: {
+    color: "#f44336",
+  },
+  gridCardContent: {
+    flex: 1,
+  },
+  gridCardName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#4e342e",
+    marginBottom: 8,
+    textAlign: "left",
+  },
+  gridCardCategory: {
+    fontSize: 12,
+    color: "#8d6e63",
+    marginBottom: 8,
+    textAlign: "left",
+  },
+  gridCardDescription: {
+    fontSize: 12,
+    color: "#6b4f42",
+    lineHeight: 18,
+    marginBottom: 12,
+    textAlign: "left",
+  },
+  gridCardPrice: {
+    backgroundColor: "#e8f5e8",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    alignSelf: "flex-start",
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "#4caf50",
+  },
+  gridCardPriceText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#2e7d32",
+  },
+  gridCardStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  gridCardStat: {
+    alignItems: "center",
+  },
+  gridCardStatLabel: {
+    fontSize: 10,
+    color: "#8d6e63",
+    fontWeight: "500",
+  },
+  gridCardStatValue: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#4e342e",
+  },
+  stockEmptyText: {
+    color: "#f44336",
+  },
+  gridCardFlags: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  gridCardFlag: {
+    alignItems: "center",
+  },
+  gridCardFlagLabel: {
+    fontSize: 10,
+    color: "#8d6e63",
+    fontWeight: "500",
+  },
+  gridCardFlagValue: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  flagActive: {
+    color: "#27ae60",
+  },
+  flagInactive: {
+    color: "#c0392b",
+  },
+  gridCardActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  gridActionButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editGridButton: {
+    backgroundColor: "#2196F3",
+  },
+  deleteGridButton: {
+    backgroundColor: "#f44336",
+  },
+  toggleGridButton: {
+    backgroundColor: "#4CAF50",
+  },
+  listCard: {
+    backgroundColor: "#fffaf5",
+    borderRadius: 20,
+    padding: 20,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e5d4c0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    marginBottom: 16,
+  },
+  listCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  listCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  listProductImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  listProductEmoji: {
+    fontSize: 40,
+    marginRight: 16,
+  },
+  listCardInfo: {
+    flex: 1,
+  },
+  listCardName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#4e342e",
+    marginBottom: 4,
+  },
+  listCardCategory: {
+    fontSize: 14,
+    color: "#8d6e63",
+    marginBottom: 4,
+  },
+  listCardDescription: {
+    fontSize: 14,
+    color: "#6b4f42",
+    lineHeight: 20,
+  },
+  listCardRight: {
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  listCardPrice: {
+    backgroundColor: "#e8f5e8",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "#4caf50",
+  },
+  listCardPriceText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2e7d32",
+  },
+  listCardSwitches: {
+    gap: 8,
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  switchLabel: {
+    fontSize: 12,
+    color: "#4e342e",
+    fontWeight: "500",
+  },
+  listCardDetails: {
+    backgroundColor: "#f7f3ef",
+    borderRadius: 15,
+    padding: 16,
+    marginBottom: 16,
+  },
+  listCardDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  listCardStat: {
+    alignItems: "center",
+    flex: 1,
+  },
+  listCardStatLabel: {
+    fontSize: 12,
+    color: "#8d6e63",
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  listCardStatValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#4e342e",
+  },
+  listCardActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  listActionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 15,
+    gap: 8,
+  },
+  editListButton: {
+    backgroundColor: "#2196F3",
+  },
+  deleteListButton: {
+    backgroundColor: "#f44336",
+  },
+  listActionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyEmoji: {
+    fontSize: 64,
+  },
+  errorEmoji: {
+    fontSize: 64,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: "#6b4f42",
+    textAlign: "center",
+    marginTop: 12,
+  },
+  retryButton: {
+    marginTop: 16,
+    backgroundColor: "#8d6e63",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  clearFiltersButton: {
+    marginTop: 16,
+    backgroundColor: "#2196F3",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  clearFiltersButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    position: "absolute",
+    top: 50,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  modalContainer: {
+    width: width - 32,
+    maxHeight: "80%",
+    backgroundColor: "#fffaf5",
+    borderRadius: 20,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  modalContent: {
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#4e342e",
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4e342e",
+    marginBottom: 8,
+  },
+  inputField: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5d4c0",
+    padding: 12,
+    borderRadius: 12,
+    fontSize: 16,
+    color: "#4e342e",
+  },
+  inputFieldError: {
+    borderColor: "#f44336",
+  },
+  textareaField: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5d4c0",
+    padding: 12,
+    borderRadius: 12,
+    fontSize: 16,
+    color: "#4e342e",
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  errorText: {
+    color: "#f44336",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  categorySelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  categoryOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: "#e5d4c0",
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  categoryOptionSelected: {
+    backgroundColor: "#8d6e63",
+    borderColor: "#8d6e63",
+  },
+  categoryOptionText: {
+    fontSize: 14,
+    color: "#4e342e",
+  },
+  categoryOptionTextSelected: {
+    color: "#fff",
+  },
+  optionsContainer: {
+    marginBottom: 20,
+  },
+  optionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  optionLabel: {
+    fontSize: 14,
+    color: "#4e342e",
+    fontWeight: "500",
+  },
+  formActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 10,
+    marginBottom: 40,
+  },
+  formActionButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  saveButton: {
+    backgroundColor: "#4CAF50",
+  },
+  cancelButton: {
+    backgroundColor: "#f44336",
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  cancelButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  paginationButton: {
+    flexDirection: "row",
+    backgroundColor: "#8d6e63",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: "center",
+    gap: 8,
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  pageInfoContainer: {
+    alignItems: "center",
+  },
+  pageInfo: {
+    fontSize: 16,
+    color: "#4e342e",
+    fontWeight: "500",
+  },
+  pageSubInfo: {
+    fontSize: 12,
+    color: "#6b4f42",
+    marginTop: 4,
+  },
+});
+
+// Export the component explicitly
 export default ProductsScreen;
