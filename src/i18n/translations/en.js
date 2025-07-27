@@ -451,6 +451,9 @@ export default {
     tea: "Tea",
   },
   worker: {
+    error: "Error",
+    invalidQuantity: "Please enter a valid quantity",
+    emptyCart: "Your cart is empty",
     orders: "Orders",
     tasks: "Tasks",
     newOrder: "New Order",

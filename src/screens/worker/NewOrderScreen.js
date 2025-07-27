@@ -1218,7 +1218,7 @@ const NewOrderScreen = () => {
 
     const parsedGrams = item.unit_type === "pieces" ? parseInt(newGrams) : parseFloat(newGrams);
     if (isNaN(parsedGrams) || parsedGrams <= 0) {
-      Alert.alert(t("worker.error"), t("worker.invalidQuantity"));
+      Alert.alert(t("common.error"), t("worker.invalidQuantity"));
       return;
     }
     if (item.unit_type === "pieces" && !Number.isInteger(parsedGrams)) {
@@ -1571,6 +1571,14 @@ const NewOrderScreen = () => {
       left: isRTL ? 8 : undefined,
       padding: 8,
     },
+      quantityButton: {
+      backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     cartTitle: {
       fontSize: 20,
       fontWeight: "bold",
@@ -1613,19 +1621,11 @@ const NewOrderScreen = () => {
     gramsInput: {
       backgroundColor: isDark ? "#3d3d3d" : "#d7bfa9",
       width: 60,
-      height: 36,
+      height: 40,
       borderRadius: 10,
       textAlign: "center",
       fontSize: 14,
       color: isDark ? "#ffffff" : "#4e342e",
-    },
-    quantityButton: {
-      backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: "center",
-      justifyContent: "center",
     },
     removeButton: {
       backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",
