@@ -51,7 +51,7 @@ const ProfileScreen = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || "");
   const [editedEmail, setEditedEmail] = useState(user?.email || "");
-  const [editedPhone, setEditedPhone] = useState("+966 50 123 4567"); // أو user.phone لو موجود
+  const [editedPhone, setEditedPhone] = useState("01203851233"); // أو user.phone لو موجود
   const [localUser, setLocalUser] = useState(user); // نسخة محلية من المستخدم
   // Local state for settings
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -131,7 +131,7 @@ const validateForm = () => {
         },
         {
           label: t("worker.phone"),
-          value: "+966 50 123 4567",
+          value: localUser?.phone || "01203851233",
           icon: "User",
         },
         {
@@ -314,16 +314,16 @@ setLocalUser((prev) => ({
         setShowLanguageModal(true);
         break;
       case "workingHours":
-        Alert.alert(t("worker.workingHours"), t("worker.workingHoursSettings"));
+        navigation.navigate('WorkingHours');
         break;
       case "help":
-        Alert.alert(t("worker.help"), t("worker.helpMessage"));
+        navigation.navigate('Help');
         break;
       case "about":
-        Alert.alert(t("worker.about"), t("worker.aboutMessage"));
+        navigation.navigate('About');
         break;
       case "privacy":
-        Alert.alert(t("worker.privacy"), t("worker.privacyMessage"));
+          navigation.navigate('Privacy');
         break;
       default:
         break;
