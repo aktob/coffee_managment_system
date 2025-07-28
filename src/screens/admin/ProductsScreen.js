@@ -296,12 +296,11 @@ const ProductsScreen = () => {
 
     // Barcode validation
     if (!barcode.trim()) {
-      setBarcodeError(t("validation.barcodeRequired") || "الباركود مطلوب");
+      setBarcodeError(t("validation.barcodeRequired"));
       hasError = true;
-    } else if (barcode.trim().length < 3) {
+    } else if (!/^\d+$/.test(barcode.trim())) {
       setBarcodeError(
-        t("validation.barcodeMinLength") ||
-          "الباركود يجب أن يكون 3 أحرف على الأقل"
+        t("validation.invalidBarcode") 
       );
       hasError = true;
     }
@@ -452,8 +451,8 @@ const ProductsScreen = () => {
   // Handle Delete Product
   const handleDeleteProduct = async (product) => {
     Alert.alert(
-      t("common.delete") || "حذف المنتج",
-      t("common.delete") || `هل أنت متأكد من حذف "${product.name}"؟`,
+      t("common.deleteProduct") || "حذف المنتج",
+      t("common.confirmDeleteMessage") || `هل أنت متأكد من حذف "${product.name}"؟`,
       [
         {
           text: t("common.cancel") || "إلغاء",
@@ -495,10 +494,10 @@ const ProductsScreen = () => {
               // Refresh the product list after deletion to ensure sync with server
               await fetchProducts(1, true);
 
-              Alert.alert(
-                t("admin.deleteProduct") || "حذف المنتج",
-                t("admin.deleteProductSuccess") || "تم حذف المنتج بنجاح"
-              );
+              // Alert.alert(
+              //   t("admin.deleteProduct") || "حذف المنتج",
+              //   t("admin.deleteProductSuccess") || "تم حذف المنتج بنجاح"
+              // );
             } catch (err) {
               console.error("Error deleting product:", err.message);
               Alert.alert(

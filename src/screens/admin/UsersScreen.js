@@ -59,12 +59,12 @@ const UsersScreen = () => {
   const [error, setError] = useState(null);
 
   const roles = [
-    { id: "1", name: "المدير" },
-    { id: "2", name: "بائع" },
+    { id: "1", name: currentLanguage === "ar" ? "المدير" : "Manager" },
+    { id: "2", name: currentLanguage === "ar" ? "بائع" : "Seller" },
   ];
   const branches = [
-    { id: "1", name: "فرع الأباصيري" },
-    { id: "3", name: "فرع الابراج" },
+    { id: "1", name: currentLanguage === "ar" ? "فرع الأباصيري" : "Abasiri Branch" },
+    { id: "3", name: currentLanguage === "ar" ? "فرع الابراج" : "Al-Abraj Branch" },
   ];
 
   useEffect(() => {

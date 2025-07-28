@@ -455,7 +455,7 @@ const PromotionsScreen = () => {
 
             if (response.ok) {
               setPromotions((prev) => prev.filter((p) => p.id !== promotion.id));
-              Alert.alert(t("admin.deletePromotion"), t("admin.promoDeleted"));
+              // Alert.alert(t("admin.deletePromotion"), t("admin.promoDeleted"));
             } else {
               const result = await response.json();
               throw new Error(result.message || t("admin.promoDeleteFailed"));
@@ -1231,12 +1231,12 @@ const PromotionsScreen = () => {
 
         {formVisible && (
           <View style={styles.formContainer}>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.closeButton}
               onPress={clearPromoForm}
             >
               {renderIcon("X", 24, isDark ? "#ff6666" : "#c62828")}
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <ScrollView
               style={styles.formInnerContainer}
               contentContainerStyle={styles.formScrollContainer}
@@ -1374,7 +1374,7 @@ const PromotionsScreen = () => {
                   />
 
                   <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", marginBottom: 12 }}>
-                    <Text style={[styles.detailLabel, { marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]}>
+                    <Text style={[styles.detailLabel, {fontSize:15,paddingLeft:8} , { marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]}>
                       {t("admin.activeStatus")}
                     </Text>
                     <Switch

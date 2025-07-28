@@ -1,5 +1,6 @@
 export default {
   common: {
+    update: "تحديث",
     welcome: "مرحباً بكم في نظام القهوة",
     loading: "جاري التحميل...",
     error: "حدث خطأ",
@@ -8,6 +9,7 @@ export default {
     save: "حفظ",
     edit: "تعديل",
     delete: "حذف",
+    deleteProduct: "حذف المنتج",
     search: "بحث",
     filter: "تصفية",
     all: "الكل",
@@ -270,6 +272,12 @@ export default {
     alert: "التنبيه",
   },
   admin: {
+    activeStatus:"نشط",
+    fetchUsersError: "فشل في جلب المستخدمين",
+    fetchProductsError: "فشل في جلب المنتجات",
+    loading: "جاري التحميل...",
+    dashboard: "لوحة التحكم",
+    branches: "الفروع",
     products: "المنتجات",
     promotions: "العروض",
     users: "المستخدمون",
@@ -724,7 +732,12 @@ export default {
   validation: {
     required: "هذا الحقل مطلوب",
     invalidEmail: "يرجى إدخال بريد إلكتروني صحيح",
+    invalidBarcode: "يرجى ادخال باركود صحيح",
     passwordLength: "كلمة المرور يجب أن تكون على الأقل 6 أحرف",
+    stockInvalid: "الكمية يجب أن تكون رقمًا صحيحًا",
+    barcodeRequired: "الباركود مطلوب",
+    priceRequired: "يرجى إدخال السعر",
+    nameRequired: "يرجى إدخال الاسم",
   },
   days: {
     monday: "الاثنين",
