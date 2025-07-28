@@ -26,6 +26,8 @@ import {
   CheckCircle,
   XCircle,
   ChevronRight,
+  RefreshCcw,
+  RotateCcw,
   ChevronLeft,
   Calendar,
   Star,
@@ -220,6 +222,8 @@ const ProductsScreen = () => {
         return <XCircle size={size} color={color} />;
       case "ChevronRight":
         return <ChevronRight size={size} color={color} />;
+      case "RefreshCcw":
+        return <RefreshCcw size={size} color={color} />;
       case "ChevronLeft":
         return <ChevronLeft size={size} color={color} />;
       case "Calendar":
@@ -927,7 +931,7 @@ const ProductsScreen = () => {
             style={styles.refreshButton}
             onPress={handleRefresh}
           >
-            {renderIcon("ChevronRight", 24, "#fff")}
+            {renderIcon("RefreshCcw", 24, "#fff")}
           </TouchableOpacity>
         </View>
         <Text style={styles.headerSubtitle}>
@@ -1113,29 +1117,8 @@ const ProductsScreen = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <View style={styles.paginationContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                currentPage === 1 && styles.paginationButtonDisabled,
-              ]}
-              onPress={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              {renderIcon("ChevronLeft", 20, "#fff")}
-              <Text style={styles.paginationButtonText}>
-                {t("common.previous") || "السابق"}
-              </Text>
-            </TouchableOpacity>
-            <View style={styles.pageInfoContainer}>
-              <Text style={styles.pageInfo}>
-                {t("worker.page") || "صفحة"} {currentPage}{" "}
-                {t("worker.of") || "من"} {totalPages}
-              </Text>
-              <Text style={styles.pageSubInfo}>
-                ({filteredProducts.length} {t("worker.of") || "من"}{" "}
-                {totalProducts} {t("admin.products") || "منتج"})
-              </Text>
-            </View>
+
+
             <TouchableOpacity
               style={[
                 styles.paginationButton,
@@ -1149,6 +1132,37 @@ const ProductsScreen = () => {
               </Text>
               {renderIcon("ChevronRight", 20, "#fff")}
             </TouchableOpacity>
+            
+
+
+            <View style={styles.pageInfoContainer}>
+              <Text style={styles.pageInfo}>
+                {t("worker.page") || "صفحة"} {currentPage}{" "}
+                {t("worker.of") || "من"} {totalPages}
+              </Text>
+              <Text style={styles.pageSubInfo}>
+                ({filteredProducts.length} {t("worker.of") || "من"}{" "}
+                {totalProducts} {t("admin.products") || "منتج"})
+              </Text>
+            </View>
+
+
+            <TouchableOpacity
+              style={[
+                styles.paginationButton,
+                currentPage === 1 && styles.paginationButtonDisabled,
+              ]}
+              onPress={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              {renderIcon("ChevronLeft", 20, "#fff")}
+              <Text style={styles.paginationButtonText}>
+                {t("common.previous") || "السابق"}
+              </Text>
+            </TouchableOpacity>
+
+
+
           </View>
         )}
       </ScrollView>
@@ -1392,18 +1406,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f7f3ef",
-    direction: "rtl",
+    direction: "ltr",
   },
   header: {
-    padding: 20,
-    backgroundColor: "#fffaf5",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5d4c0",
-    elevation: 2,
+    paddingTop: 50,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    backgroundColor: "#8d6e63",
+    borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
+    elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    zIndex: 2000, // Ensure header stays above form
   },
   headerTop: {
     flexDirection: "row",
@@ -1413,15 +1430,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#4e342e",
+    color: "#ffffff",
   },
   headerSubtitle: {
     fontSize: 16,
-    color: "#6b4f42",
+    color: "#ffffff",
     marginTop: 8,
   },
   refreshButton: {
-    backgroundColor: "#8d6e63",
+    backgroundColor: "#7b645bff",
     padding: 10,
     borderRadius: 12,
   },
@@ -1517,7 +1534,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#8d6e63",
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 25,
@@ -2020,7 +2037,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   paginationContainer: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 16,

@@ -60,7 +60,7 @@ const AdminProfileScreen = () => {
 const [showEditModal, setShowEditModal] = useState(false);
 const [editedName, setEditedName] = useState(user?.name || "");
 const [editedEmail, setEditedEmail] = useState(user?.email || "");
-const [editedPhone, setEditedPhone] = useState("+966 50 123 4567"); // أو user.phone لو موجود
+const [editedPhone, setEditedPhone] = useState("01203851233"); // أو user.phone لو موجود
 const [localUser, setLocalUser] = useState(user); // نسخة محلية من المستخدم
 // New i added
 
@@ -80,7 +80,7 @@ const validateForm = () => {
   let newErrors = {};
 
   // name is required
-  const nameRegex = /^[a-zA-Z\u0600-\u06FF\s]{3,40}$/;
+  const nameRegex = /^[a-zA-Z\u0600-\u06FF\s]+[0-9]*$/;
   if (!editedName.trim()) {
     newErrors.name = "name is required";
     valid = false;

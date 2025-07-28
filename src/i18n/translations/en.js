@@ -1,5 +1,8 @@
+import { retry } from "@reduxjs/toolkit/query";
+
 export default {
   common: {
+    retry: "Retry",
     welcome: "Welcome",
     login: "Login",
     logout: "Logout",
@@ -271,6 +274,8 @@ export default {
     alert: "Alert",
   },
   admin: {
+    fetchProductsError: "Failed to fetch products",
+    loading: "Loading...",
     dashboard: "Dashboard",
     products: "Products",
     users: "Users",

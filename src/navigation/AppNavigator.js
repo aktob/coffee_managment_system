@@ -16,9 +16,9 @@ import HelpScreen from './workerNavigations/HelpScreen';
 import AboutScreen from './workerNavigations/AboutScreen';
 import PrivacyScreen from './workerNavigations/PrivacyScreen';
 
-import AdminHelpScreen from '../screens/admin/AdminHelpScreen';
-import AdminAboutScreen from '../screens/admin/AdminAboutScreen';
-import AdminPrivacyScreen from '../screens/admin/AdminPrivacyScreen';
+import AdminHelpScreen from './adminNavigations/AdminHelpScreen';
+import AdminAboutScreen from './adminNavigations/AdminAboutScreen';
+import AdminPrivacyScreen from './adminNavigations/AdminPrivacyScreen';
 
 
 
