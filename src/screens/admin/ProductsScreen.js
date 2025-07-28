@@ -160,7 +160,7 @@ const ProductsScreen = () => {
       setPerPage(data.per_page || 15);
       setError(null);
     } catch (err) {
-      console.error("Error fetching products:", err.message);
+      // console.error("Error fetching products:", err.message);
       setError(err.message);
       Alert.alert(t("common.error") || "خطأ", err.message);
     } finally {
@@ -423,7 +423,7 @@ const ProductsScreen = () => {
       setFormVisible(false);
       clearForm();
     } catch (err) {
-      console.error("Error submitting product:", err.message);
+      // console.error("Error submitting product:", err.message);
       Alert.alert(
         t("common.error") || "خطأ",
         err.message || t("admin.saveProductError") || "فشل في حفظ المنتج"
@@ -499,7 +499,7 @@ const ProductsScreen = () => {
               //   t("admin.deleteProductSuccess") || "تم حذف المنتج بنجاح"
               // );
             } catch (err) {
-              console.error("Error deleting product:", err.message);
+              // console.error("Error deleting product:", err.message);
               Alert.alert(
                 t("common.error") || "خطأ",
                 err.message ||
@@ -547,7 +547,7 @@ const ProductsScreen = () => {
       // Refresh the product list after toggling status
       await fetchProducts(1, true);
     } catch (err) {
-      console.error("Error toggling product status:", err.message);
+      // console.error("Error toggling product status:", err.message);
       Alert.alert(
         t("common.error") || "خطأ",
         err.message ||
@@ -591,7 +591,7 @@ const ProductsScreen = () => {
       // Refresh the product list after toggling visibility
       await fetchProducts(1, true);
     } catch (err) {
-      console.error("Error toggling website visibility:", err.message);
+      // console.error("Error toggling website visibility:", err.message);
       Alert.alert(
         t("common.error") || "خطأ",
         err.message ||

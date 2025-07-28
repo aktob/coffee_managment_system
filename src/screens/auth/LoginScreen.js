@@ -39,8 +39,8 @@ const loginUser = async (email, password) => {
         { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
         { headers: { "Content-Type": "application/json" } }
       );
-      console.log("API Response (Worker Login):", response.data);
-      console.log("Access Token:", response.data.access_token);
+      // console.log("API Response (Worker Login):", response.data);
+      // console.log("Access Token:", response.data.access_token);
       const { access_token, user } = response.data;
       if (!access_token) {
         throw new Error("No access token returned from API");
@@ -57,12 +57,12 @@ const loginUser = async (email, password) => {
       { email, password },
       { headers: { "Content-Type": "application/json" } }
     );
-    console.log("API Response:", response.data);
+    // console.log("API Response:", response.data);
     const { access_token, user } = response.data;
     const role = user.roles[0]?.name === "المدير" ? "admin" : "worker";
     return { user: { email: user.email, name: user.name }, role, token: access_token };
   } catch (error) {
-    console.error("API Error:", error.response?.data || error.message);
+    // console.error("API Error:", error.response?.data || error.message);
     throw new Error(
       error.response?.data?.message || "فشل تسجيل الدخول. تحقق من الإيميل أو كلمة السر."
     );

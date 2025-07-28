@@ -81,10 +81,10 @@ const AnalyticsScreen = () => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const result = await response.json();
-      console.log("Dashboard API response:", result);
+      // console.log("Dashboard API response:", result);
       setDashboardData(result);
     } catch (error) {
-      console.error("Error fetching dashboard data:", error.message);
+      // console.error("Error fetching dashboard data:", error.message);
       setError(error.message);
       Alert.alert(t("worker.error"), error.message || t("worker.fetchFailed"));
     } finally {
@@ -240,7 +240,7 @@ const AnalyticsScreen = () => {
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       await Sharing.shareAsync(uri);
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      // console.error("Error generating PDF:", error);
       Alert.alert(t("worker.error"), t("worker.exportFailed"));
     }
   };

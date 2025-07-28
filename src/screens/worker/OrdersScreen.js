@@ -380,7 +380,7 @@ const OrdersScreen = () => {
           setCurrentPage(page);
         }
       } catch (err) {
-        console.error("Error fetching orders:", err.message);
+        //console.error("Error fetching orders:", err.message);
         setError(err.message || t("common.errorFetchingData"));
         setOrders([]);
       } finally {

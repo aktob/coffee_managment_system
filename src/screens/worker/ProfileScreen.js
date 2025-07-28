@@ -286,7 +286,7 @@ const validateForm = () => {
         style: "destructive",
         onPress: () => {
           // Handle logout logic here
-          console.log("Logout pressed");
+          //console.log("Logout pressed");
           // Dispatch logout action to clear authentication state
           dispatch(logout());
         },

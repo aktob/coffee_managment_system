@@ -125,7 +125,7 @@ const PromotionsScreen = () => {
         }
 
         const result = await response.json();
-        console.log("Promotions API Response:", result);
+        // console.log("Promotions API Response:", result);
 
         if (result.data && Array.isArray(result.data)) {
           const formattedPromotions = result.data.map((promo) => ({
@@ -148,7 +148,7 @@ const PromotionsScreen = () => {
           throw new Error("No promotions data found");
         }
       } catch (error) {
-        console.error("Error fetching promotions:", error.message);
+        // console.error("Error fetching promotions:", error.message);
         setError(error.message);
         Alert.alert(t("worker.error"), error.message || t("worker.fetchPromotionsFailed"));
       } finally {
@@ -181,7 +181,7 @@ const PromotionsScreen = () => {
         }
 
         const promo = await response.json();
-        console.log("Raw Promotion Details:", promo); // Log the raw response
+        // console.log("Raw Promotion Details:", promo); // Log the raw response
 
         // Check if promo.data exists (in case API wraps data in a 'data' object)
         const promoData = promo.data || promo;
@@ -201,21 +201,21 @@ const PromotionsScreen = () => {
         setIsEditingPromo(true);
         setFormVisible(true);
 
-        console.log("Set Promotion Details:", {
-          code: promoData.code,
-          name: promoData.name,
-          description: promoData.description,
-          type: promoData.type,
-          value: promoData.value,
-          minimum_order_amount: promoData.minimum_order_amount,
-          max_uses: promoData.max_uses,
-          valid_from: promoData.valid_from,
-          valid_until: promoData.valid_until,
-          is_active: promoData.is_active,
-          id: promoData.id,
-        });
+        // console.log("Set Promotion Details:", {
+        //   code: promoData.code,
+        //   name: promoData.name,
+        //   description: promoData.description,
+        //   type: promoData.type,
+        //   value: promoData.value,
+        //   minimum_order_amount: promoData.minimum_order_amount,
+        //   max_uses: promoData.max_uses,
+        //   valid_from: promoData.valid_from,
+        //   valid_until: promoData.valid_until,
+        //   is_active: promoData.is_active,
+        //   id: promoData.id,
+        // });
       } catch (error) {
-        console.error("Error fetching promotion details:", error.message);
+        // console.error("Error fetching promotion details:", error.message);
         Alert.alert(t("worker.error"), error.message || t("worker.fetchPromotionDetailsFailed"));
       } finally {
         setFormLoading(false);
@@ -386,7 +386,7 @@ const PromotionsScreen = () => {
       });
 
       const result = await response.json();
-      console.log(`${method} Promotion API Response:`, result);
+      // console.log(`${method} Promotion API Response:`, result);
 
       if (response.ok) {
         Alert.alert(
@@ -399,7 +399,7 @@ const PromotionsScreen = () => {
         throw new Error(result.message || t("admin.promoFailed"));
       }
     } catch (error) {
-      console.error(`Error ${isEditingPromo ? "updating" : "adding"} promotion:`, error.message);
+      // console.error(`Error ${isEditingPromo ? "updating" : "adding"} promotion:`, error.message);
       Alert.alert(t("worker.error"), error.message || t("admin.promoFailed"));
     } finally {
       setFormLoading(false);
@@ -461,7 +461,7 @@ const PromotionsScreen = () => {
               throw new Error(result.message || t("admin.promoDeleteFailed"));
             }
           } catch (error) {
-            console.error("Error deleting promotion:", error.message);
+            // console.error("Error deleting promotion:", error.message);
             Alert.alert(t("worker.error"), error.message || t("admin.promoDeleteFailed"));
           } finally {
             setLoading(false);
@@ -499,7 +499,7 @@ const PromotionsScreen = () => {
         throw new Error(result.message || t("admin.promoToggleFailed"));
       }
     } catch (error) {
-      console.error("Error toggling promotion active state:", error.message);
+      // console.error("Error toggling promotion active state:", error.message);
       Alert.alert(t("worker.error"), error.message || t("admin.promoToggleFailed"));
     } finally {
       setLoading(false);

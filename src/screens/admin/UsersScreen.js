@@ -59,12 +59,12 @@ const UsersScreen = () => {
   const [error, setError] = useState(null);
 
   const roles = [
-    { id: "1", name: currentLanguage === "ar" ? "المدير" : "Manager" },
-    { id: "2", name: currentLanguage === "ar" ? "بائع" : "Seller" },
+    { id: "1", name: "المدير" },
+    { id: "2", name: "بائع" },
   ];
   const branches = [
-    { id: "1", name: currentLanguage === "ar" ? "فرع الأباصيري" : "Abasiri Branch" },
-    { id: "3", name: currentLanguage === "ar" ? "فرع الابراج" : "Al-Abraj Branch" },
+    { id: "1", name: "فرع الأباصيري" },
+    { id: "3", name: "فرع الابراج" },
   ];
 
   useEffect(() => {
@@ -75,7 +75,7 @@ const UsersScreen = () => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem("authToken");
-      console.log("Retrieved Token for Users:", token);
+      // //console.log("Retrieved Token for Users:", token);
       if (!token) {
         throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
       }
@@ -91,7 +91,7 @@ const UsersScreen = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log("Fetch Users Error Response:", errorData);
+        // //console.log("Fetch Users Error Response:", errorData);
         if (response.status === 401) {
           throw new Error(t("admin.unauthorized") || "التوكين غير صالح أو منتهي");
         }
@@ -101,15 +101,15 @@ const UsersScreen = () => {
       }
 
       const data = await response.json();
-      console.log("Users API Response:", JSON.stringify(data, null, 2));
-      console.log("API Response Status:", response.status);
+      //console.log("Users API Response:", JSON.stringify(data, null, 2));
+      //console.log("API Response Status:", response.status);
 
       const mappedUsers = data.data.map((user) => {
         const createdAt = user.created_at ? user.created_at.split("T")[0] : new Date().toISOString().split("T")[0];
         const roleId = user.role ? user.role.toString() : (user.roles && user.roles[0]?.id ? user.roles[0].id.toString() : "2");
         const roleName = user.role ? (roles.find(r => r.id === user.role.toString())?.name || "بائع") : 
                          (user.roles && user.roles[0]?.display_name ? user.roles[0].display_name : "بائع");
-        console.log("Processing user:", user.name, "created_at:", user.created_at, "mapped joinDate:", createdAt, "role:", roleId);
+        //console.log("Processing user:", user.name, "created_at:", user.created_at, "mapped joinDate:", createdAt, "role:", roleId);
         return {
           id: user.id || Date.now(),
           name: user.name || "مستخدم بدون اسم",
@@ -127,7 +127,7 @@ const UsersScreen = () => {
       setTotalPages(data.last_page || 1);
       setError(null);
     } catch (err) {
-      console.error("Error fetching users:", err.message);
+      //console.error("Error fetching users:", err.message);
       setError(err.message);
       Alert.alert(t("common.error") || "خطأ", err.message);
     } finally {
@@ -136,7 +136,7 @@ const UsersScreen = () => {
   };
 
   const filteredUsers = users.filter((user) => {
-    console.log("Filtering user:", user.name, "role_id:", user.role_id, "selectedRole:", selectedRole);
+    //console.log("Filtering user:", user.name, "role_id:", user.role_id, "selectedRole:", selectedRole);
     return (
       (selectedRole === "all" || user.role_id === selectedRole) &&
       (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -146,7 +146,7 @@ const UsersScreen = () => {
 
   const normalizeDate = (dateString) => {
     if (!dateString) return null;
-    console.log("Normalizing date:", dateString);
+    //console.log("Normalizing date:", dateString);
     
     const formats = [
       /^(\d{4})-(\d{2})-(\d{2})$/, // YYYY-MM-DD
@@ -165,12 +165,12 @@ const UsersScreen = () => {
           [, day, month, year] = match;
         }
         const normalized = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        console.log("Normalized to:", normalized);
+        //console.log("Normalized to:", normalized);
         return normalized;
       }
     }
 
-    console.log("Invalid date format:", dateString);
+    //console.log("Invalid date format:", dateString);
     return null;
   };
 
@@ -186,10 +186,10 @@ const UsersScreen = () => {
                       date.getFullYear() === year && 
                       date.getMonth() === month - 1 && 
                       date.getDate() === day;
-      console.log("Validating date:", dateString, "Normalized:", normalized, "Is Valid:", isValid);
+      //console.log("Validating date:", dateString, "Normalized:", normalized, "Is Valid:", isValid);
       return isValid;
     } catch (err) {
-      console.log("Error validating date:", err.message, "input:", dateString);
+      //console.log("Error validating date:", err.message, "input:", dateString);
       return false;
     }
   };
@@ -198,7 +198,7 @@ const UsersScreen = () => {
     if (!dateString) return t("admin.noDate") || "لا يوجد تاريخ";
     const normalized = normalizeDate(dateString);
     if (!normalized || !validateDate(normalized)) {
-      console.log("Invalid date for formatting:", dateString);
+      //console.log("Invalid date for formatting:", dateString);
       return t("admin.invalidDate") || "تاريخ غير صالح";
     }
     try {
@@ -206,7 +206,7 @@ const UsersScreen = () => {
       const date = new Date(year, month - 1, day);
       return date.toISOString().split("T")[0];
     } catch (err) {
-      console.log("Error formatting date:", err.message, "input:", dateString);
+      //console.log("Error formatting date:", err.message, "input:", dateString);
       return t("admin.invalidDate") || "تاريخ غير صالح";
     }
   };
@@ -245,7 +245,7 @@ const UsersScreen = () => {
   const handleEditUser = async (user) => {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      console.log("Retrieved Token for Edit User:", token);
+      //console.log("Retrieved Token for Edit User:", token);
       if (!token) {
         throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
       }
@@ -261,31 +261,31 @@ const UsersScreen = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log("Edit User Error Response:", errorData);
+        //console.log("Edit User Error Response:", errorData);
         throw new Error(
           errorData.message || t("admin.fetchUserError") || `فشل في جلب بيانات المستخدم (Status: ${response.status})`
         );
       }
 
       const userData = await response.json();
-      console.log("Edit User API Response:", JSON.stringify(userData, null, 2));
-      console.log("API Response Status:", response.status);
+      //console.log("Edit User API Response:", JSON.stringify(userData, null, 2));
+      //console.log("API Response Status:", response.status);
 
       setUserName(userData.name || "");
       setUserEmail(userData.email || "");
       const roleId = userData.role ? userData.role.toString() : (userData.roles && userData.roles[0]?.id ? userData.roles[0].id.toString() : "2");
-      console.log("Setting roleId for edit:", roleId);
+      //console.log("Setting roleId for edit:", roleId);
       setUserRoleId(roleId);
       setUserStatus(userData.blocked ? "inactive" : "active");
       const joinDate = userData.created_at ? userData.created_at.split("T")[0] : "";
-      console.log("Setting joinDate for edit:", joinDate);
+      //console.log("Setting joinDate for edit:", joinDate);
       setUserJoinDate(joinDate);
       setUserBranchId(userData.branches[0]?.id?.toString() || "1");
       setUserEditId(user.id);
       setIsEditingUser(true);
       setFormVisible(true);
     } catch (err) {
-      console.error("Error fetching user for edit:", err.message);
+      //console.error("Error fetching user for edit:", err.message);
       Alert.alert(t("common.error") || "خطأ", err.message);
     }
   };
@@ -305,8 +305,8 @@ const UsersScreen = () => {
           onPress: async () => {
             try {
               const token = await AsyncStorage.getItem("authToken");
-              console.log("Retrieved Token for Delete User:", token);
-              console.log("Deleting user with ID:", user.id);
+              //console.log("Retrieved Token for Delete User:", token);
+              //console.log("Deleting user with ID:", user.id);
               if (!token) {
                 throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
               }
@@ -321,8 +321,8 @@ const UsersScreen = () => {
               });
 
               const result = await response.json().catch(() => ({}));
-              console.log("Delete User API Response:", result);
-              console.log("API Response Status:", response.status);
+              //console.log("Delete User API Response:", result);
+              //console.log("API Response Status:", response.status);
 
               if (!response.ok) {
                 throw new Error(
@@ -337,7 +337,7 @@ const UsersScreen = () => {
               // );
               fetchUsers();
             } catch (err) {
-              console.error("Error deleting user:", err.message);
+              //console.error("Error deleting user:", err.message);
               Alert.alert(t("common.error") || "خطأ", err.message);
             }
           },
@@ -390,19 +390,19 @@ const UsersScreen = () => {
 
   try {
     const token = await AsyncStorage.getItem("authToken");
-    console.log("Retrieved Token for Add/Edit User:", token);
+    //console.log("Retrieved Token for Add/Edit User:", token);
 
     // تحويل userRoleId إلى النص العربي
     const roleName = roles.find((r) => r.id === userRoleId)?.name || "بائع";
 
-    console.log("User Data to be sent:", {
-      name: userName.trim(),
-      email: userEmail.trim(),
-      role: roleName, // إرسال النص العربي ("بائع" أو "المدير")
-      branch_id: parseInt(userBranchId),
-      created_at: normalizedDate || new Date().toISOString().split("T")[0],
-      ...(isEditingUser ? {} : { password: userPassword.trim() }),
-    });
+    //console.log("User Data to be sent:", {
+    //   name: userName.trim(),
+    //   email: userEmail.trim(),
+    //   role: roleName, // إرسال النص العربي ("بائع" أو "المدير")
+    //   branch_id: parseInt(userBranchId),
+    //   created_at: normalizedDate || new Date().toISOString().split("T")[0],
+    //   ...(isEditingUser ? {} : { password: userPassword.trim() }),
+    // });
 
     if (!token) {
       throw new Error(t("admin.noToken") || "لم يتم العثور على التوكين");
@@ -435,8 +435,8 @@ const UsersScreen = () => {
     });
 
     const result = await response.json();
-    console.log("Add/Edit User API Response:", JSON.stringify(result, null, 2));
-    console.log("API Response Status:", response.status);
+    //console.log("Add/Edit User API Response:", JSON.stringify(result, null, 2));
+    //console.log("API Response Status:", response.status);
 
     if (!response.ok) {
       if (response.status === 422) {
@@ -481,7 +481,7 @@ const UsersScreen = () => {
     clearUserForm();
     fetchUsers();
   } catch (err) {
-    console.error("Error adding/editing user:", err.message);
+    //console.error("Error adding/editing user:", err.message);
     Alert.alert(t("common.error") || "خطأ", err.message);
   }
 };
@@ -844,7 +844,7 @@ const UsersScreen = () => {
                     : styles.filterButtonInactive,
                 ]}
                 onPress={() => {
-                  console.log("Selected Role:", role.id);
+                  //console.log("Selected Role:", role.id);
                   setSelectedRole(role.id);
                 }}
               >
