@@ -1408,7 +1408,7 @@ const styles = StyleSheet.create({
     direction: "ltr",
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 30,
     paddingBottom: 28,
     paddingHorizontal: 20,
     backgroundColor: "#8d6e63",
