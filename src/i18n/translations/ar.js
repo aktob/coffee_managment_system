@@ -329,6 +329,7 @@ export default {
     userAdded: "تم إضافة المستخدم بنجاح",
     promotionsManagement: "إدارة العروض الترويجية",
     promotionsSubtitle: "إدارة الخصومات والعروض الخاصة",
+    noPromotionsFound: "لا يوجد عروض...",
     searchPromotions: "البحث في العروض الترويجية...",
     filterByStatus: "تصفية حسب الحالة",
     allPromotions: "جميع العروض",

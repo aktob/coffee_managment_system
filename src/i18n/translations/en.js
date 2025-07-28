@@ -326,6 +326,7 @@ export default {
     minOrderAmount: "minimum Order Amount",
     promotionStart: "Start Date",
     promotionEnd: "End Date",
+    noPromotionsFound: "no Promotions Found",
     userName: "User Name",
     userEmail: "Email",
     userRole: "Role",
