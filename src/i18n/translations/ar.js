@@ -1,5 +1,6 @@
 export default {
   common: {
+    errorFetchingData: "فشل في تحميل البيانات",
     update: "تحديث",
     welcome: "مرحباً بكم في نظام القهوة",
     loading: "جاري التحميل...",
@@ -469,6 +470,9 @@ export default {
     tea: "شاي",
   },
   worker: {
+    success: "نجح",
+    orderPlaced: "تم اضافه الاوردر بنجاح",
+    ok: "تم",
     error: "خطأ",
     emptyCart: "سلتك فارغة",
     orders: "الطلبات",

@@ -3,6 +3,7 @@ import { updateId } from "expo-updates";
 
 export default {
   common: {
+    errorFetchingData: "Error Fetching Data",
     update: "Update",
     retry: "Retry",
     welcome: "Welcome",
@@ -278,6 +279,7 @@ export default {
     alert: "Alert",
   },
   admin: {
+    noPromotionsFound: "no promotions found",
     invalidDate: "invalid date",
     invalidData: "invalid data",
     nameRequired: "name is required",
@@ -482,6 +484,9 @@ export default {
     tea: "Tea",
   },
   worker: {
+    success: "Success",
+    orderPlaced: "order added successfully",
+    ok: "ok",
     error: "Error",
     invalidQuantity: "Please enter a valid quantity",
     emptyCart: "Your cart is empty",
