@@ -16,6 +16,9 @@ import HelpScreen from './workerNavigations/HelpScreen';
 import AboutScreen from './workerNavigations/AboutScreen';
 import PrivacyScreen from './workerNavigations/PrivacyScreen';
 
+import AdminHelpScreen from '../screens/admin/AdminHelpScreen';
+import AdminAboutScreen from '../screens/admin/AdminAboutScreen';
+import AdminPrivacyScreen from '../screens/admin/AdminPrivacyScreen';
 
 
 
@@ -56,6 +59,11 @@ const AppNavigator = () => {
             <Stack.Screen name="Help" component={HelpScreen} />
             <Stack.Screen name="About" component={AboutScreen} />
             <Stack.Screen name="Privacy" component={PrivacyScreen} />
+
+            <Stack.Screen name="AdminHelp" component={AdminHelpScreen} />
+            <Stack.Screen name="AdminAbout" component={AdminAboutScreen} />
+            <Stack.Screen name="AdminPrivacy" component={AdminPrivacyScreen} />
+
           </>
         )}
       </Stack.Navigator>

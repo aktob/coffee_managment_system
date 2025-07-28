@@ -40,9 +40,12 @@ import {
   Package,
 } from "lucide-react-native";
 
+import { useNavigation, CommonActions } from "@react-navigation/native";
+
 const { width } = Dimensions.get("window");
 
 const AdminProfileScreen = () => {
+  const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -203,11 +206,11 @@ const validateForm = () => {
           value: soundEnabled,
           onValueChange: setSoundEnabled,
         },
-        {
-          label: t("admin.systemSettings"),
-          icon: "Settings",
-          action: "systemSettings",
-        },
+        // {
+        //   label: t("admin.systemSettings"),
+        //   icon: "Settings",
+        //   action: "systemSettings",
+        // },
       ],
     },
     {
@@ -328,16 +331,16 @@ setLocalUser((prev) => ({
         setShowLanguageModal(true);
         break;
       case "systemSettings":
-              setShowSystemSettingsModal(true);
+        setShowSystemSettingsModal(true);
         break;
       case "help":
-        setShowHelpModal(true);
+        navigation.navigate('AdminHelp');
         break;
       case "about":
-        setShowAboutModal(true);
+        navigation.navigate('AdminAbout');
         break;
       case "privacy":
-        setShowPrivacyModal(true);
+        navigation.navigate("AdminPrivacy");
         break;
       default:
         break;
