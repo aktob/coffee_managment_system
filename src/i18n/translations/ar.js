@@ -272,6 +272,8 @@ export default {
     alert: "التنبيه",
   },
   admin: {
+    email: "يرجى إدخال بريد إلكتروني صحيح",
+    password: "يرجى إدخال كلمه سر صحيحه",
     activeStatus:"نشط",
     fetchUsersError: "فشل في جلب المستخدمين",
     fetchProductsError: "فشل في جلب المنتجات",
