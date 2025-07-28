@@ -374,6 +374,7 @@ export default {
     promotionDeleted: "Promotion deleted successfully",
     promotionUpdated: "Promotion updated successfully",
     promotionAdded: "Promotion added successfully",
+    promotionFailed: "Promotion Failed",
     allPromotions: "All Promotions",
     activePromotions: "Active Promotions",
     inactivePromotions: "Inactive Promotions",

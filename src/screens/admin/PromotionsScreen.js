@@ -391,16 +391,16 @@ const PromotionsScreen = () => {
       if (response.ok) {
         Alert.alert(
           t(isEditingPromo ? "admin.editProduct" : "admin.addProduct"),
-          t(isEditingPromo ? "admin.promoUpdated" : "admin.promoAdded")
+          t(isEditingPromo ? "admin.promotionUpdated" : "admin.promotionAdded")
         );
         clearPromoForm();
         fetchPromotions(currentPage);
       } else {
-        throw new Error(result.message || t("admin.promoFailed"));
+        throw new Error(result.message || t("admin.promotionFailed"));
       }
     } catch (error) {
       // console.error(`Error ${isEditingPromo ? "updating" : "adding"} promotion:`, error.message);
-      Alert.alert(t("worker.error"), error.message || t("admin.promoFailed"));
+      Alert.alert(t("worker.error"), error.message || t("admin.promotionFailed"));
     } finally {
       setFormLoading(false);
     }
