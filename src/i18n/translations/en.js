@@ -278,6 +278,13 @@ export default {
     alert: "Alert",
   },
   admin: {
+    invalidDate: "invalid date",
+    invalidData: "invalid data",
+    nameRequired: "name is required",
+    email: "Please enter your email",
+    emailInvalid: "Please enter a valid email",
+    password: "Please enter your password",
+    passwordInvalid: "Please enter a valid password",
     activeStatus:"Active",
     fetchUsersError: "Failed to fetch users",
     branches: "Branches",
