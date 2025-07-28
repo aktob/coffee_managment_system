@@ -1,7 +1,9 @@
 import { retry } from "@reduxjs/toolkit/query";
+import { updateId } from "expo-updates";
 
 export default {
   common: {
+    update: "Update",
     retry: "Retry",
     welcome: "Welcome",
     login: "Login",
@@ -12,6 +14,8 @@ export default {
     add: "Add",
     edit: "Edit",
     delete: "Delete",
+    deleteProduct: "Delete Product",
+    confirmDeleteMessage: "Are you sure you want to delete the selected product?",
     save: "Save",
     cancel: "Cancel",
     confirm: "Confirm",
@@ -274,6 +278,9 @@ export default {
     alert: "Alert",
   },
   admin: {
+    activeStatus:"Active",
+    fetchUsersError: "Failed to fetch users",
+    branches: "Branches",
     fetchProductsError: "Failed to fetch products",
     loading: "Loading...",
     dashboard: "Dashboard",
@@ -744,7 +751,13 @@ export default {
   validation: {
     required: "This field is required",
     invalidEmail: "Please enter a valid email",
+    invalidBarcode: "Please enter a valid barcode",
     passwordLength: "Password must be at least 6 characters",
+    barcodeMinLength: "Barcode must be at least 3 characters",
+    stockInvalid: "Stock must be a valid number",
+    barcodeRequired: "Barcode is required",
+    priceRequired: "price is required",
+    nameRequired: "name is required",
   },
   days: {
     monday: "Monday",
