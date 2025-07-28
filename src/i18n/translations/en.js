@@ -103,6 +103,7 @@ export default {
     invalidCredentials: "Invalid email or password",
     loginSuccess: "Login successful",
     loginError: "Login failed",
+    invalidEmail: "Please enter a valid email",
   },
   supervisor: {
     dashboard: "Dashboard",
