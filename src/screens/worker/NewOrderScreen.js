@@ -314,7 +314,7 @@ const NewOrderScreen = () => {
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: isDark ? "#1a1a1a" : "#f7f3ef" },
     header: {
-      paddingTop: 48,
+      paddingTop: 60,
       paddingBottom: 24,
       paddingHorizontal: 16,
       backgroundColor: isDark ? "#2d2d2d" : "#8d6e63",
@@ -443,7 +443,7 @@ const NewOrderScreen = () => {
     // باقي الستايلز بدون تغيير
     cartButton: {
       position: "absolute",
-      top: 16,
+      top: 55,
       right: isRTL ? undefined : 16,
       left: isRTL ? 16 : undefined,
       backgroundColor: isDark ? "#4d4d4d" : "#8d6e63",

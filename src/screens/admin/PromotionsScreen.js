@@ -1230,183 +1230,206 @@ const PromotionsScreen = () => {
         </ScrollView>
 
         {formVisible && (
-          <View style={styles.formContainer}>
-            {/* <TouchableOpacity
-              style={styles.closeButton}
-              onPress={clearPromoForm}
-            >
-              {renderIcon("X", 24, isDark ? "#ff6666" : "#c62828")}
-            </TouchableOpacity> */}
-            <ScrollView
-              style={styles.formInnerContainer}
-              contentContainerStyle={styles.formScrollContainer}
-              showsVerticalScrollIndicator={true}
-              keyboardShouldPersistTaps="handled"
-            >
-              {formLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator
-                    size="large"
-                    color={isDark ? "#ffffff" : "#8d6e63"}
-                  />
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.formTitle}>
-                    {isEditingPromo ? t("admin.editPromotion") : t("admin.addNewPromotion")}
-                  </Text>
-
-                  <TextInput
-                    placeholder={t("admin.promotionCode")}
-                    value={promoCode}
-                    onChangeText={(text) => {
-                      setPromoCode(text);
-                      if (text.trim()) setPromoCodeError("");
-                    }}
-                    style={styles.inputField}
-                  />
-                  {promoCodeError ? (
-                    <Text style={styles.errorText}>{promoCodeError}</Text>
-                  ) : null}
-
-                  <TextInput
-                    placeholder={t("admin.promotionName")}
-                    value={promoName}
-                    onChangeText={(text) => {
-                      setPromoName(text);
-                      if (text.trim()) setPromoNameError("");
-                    }}
-                    style={styles.inputField}
-                  />
-                  {promoNameError ? (
-                    <Text style={styles.errorText}>{promoNameError}</Text>
-                  ) : null}
-
-                  <TextInput
-                    placeholder={t("admin.PromotionDescription")}
-                    value={promoDescription}
-                    onChangeText={(text) => {
-                      setPromoDescription(text);
-                      if (text.trim()) setPromoDescriptionError("");
-                    }}
-                    style={styles.inputField}
-                  />
-                  {promoDescriptionError ? (
-                    <Text style={styles.errorText}>{promoDescriptionError}</Text>
-                  ) : null}
-
-                  <View style={styles.discountTypeContainer}>
-                    {["percentage", "fixed"].map((type) => (
-                      <TouchableOpacity
-                        key={type}
-                        style={[
-                          styles.discountTypeButton,
-                          promoDiscountType === type && styles.discountTypeButtonActive,
-                        ]}
-                        onPress={() => setPromoDiscountType(type)}
-                      >
-                        <Text
-                          style={[
-                            styles.discountTypeText,
-                            promoDiscountType === type && styles.discountTypeTextActive,
-                          ]}
-                        >
-                          {t(`admin.${type}`)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <TextInput
-                    placeholder={t("admin.promotionValue")}
-                    value={promoDiscountValue}
-                    keyboardType="numeric"
-                    onChangeText={(text) => {
-                      setPromoDiscountValue(text);
-                      if (!isNaN(text) && text.trim()) setPromoDiscountValueError("");
-                    }}
-                    style={styles.inputField}
-                  />
-                  {promoDiscountValueError ? (
-                    <Text style={styles.errorText}>{promoDiscountValueError}</Text>
-                  ) : null}
-
-                  <TextInput
-                    placeholder={t("admin.minOrderAmount")}
-                    value={promoMinOrderAmount}
-                    keyboardType="numeric"
-                    onChangeText={(text) => {
-                      setPromoMinOrderAmount(text);
-                      if (!isNaN(text) && text.trim()) setPromoMinOrderAmountError("");
-                    }}
-                    style={styles.inputField}
-                  />
-                  {promoMinOrderAmountError ? (
-                    <Text style={styles.errorText}>{promoMinOrderAmountError}</Text>
-                  ) : null}
-
-                  <TextInput
-                    placeholder={t("admin.promoMaxUsesInvalid")} // Should be t("admin.maxUses")
-                    value={promoMaxUses}
-                    keyboardType="numeric"
-                    onChangeText={(text) => {
-                      setPromoMaxUses(text);
-                      if (!isNaN(text) && text.trim()) setPromoMaxUsesError("");
-                    }}
-                    style={styles.inputField}
-                  />
-                  {promoMaxUsesError ? (
-                    <Text style={styles.errorText}>{promoMaxUsesError}</Text>
-                  ) : null}
-
-                  <TextInput
-                    placeholder={t("admin.promotionStart")}
-                    value={promoValidFrom}
-                    onChangeText={setPromoValidFrom}
-                    style={styles.inputField}
-                  />
-
-                  <TextInput
-                    placeholder={t("admin.promotionEnd")}
-                    value={promoValidUntil}
-                    onChangeText={setPromoValidUntil}
-                    style={styles.inputField}
-                  />
-
-                  <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", marginBottom: 12 }}>
-                    <Text style={[styles.detailLabel, {fontSize:15,paddingLeft:8} , { marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 }]}>
-                      {t("admin.activeStatus")}
-                    </Text>
-                    <Switch
-                      value={promoActive}
-                      onValueChange={setPromoActive}
-                      trackColor={{ false: isDark ? "#3d3d3d" : "#e5d4c0", true: isDark ? "#4d4d4d" : "#8d6e63" }}
-                      thumbColor={promoActive ? "#fff" : "#f4f3f4"}
-                    />
-                  </View>
-
-                  <View style={{ flexDirection: isRTL ? "row-reverse" : "row", justifyContent: "space-between", marginTop: 12 }}>
-                    <TouchableOpacity
-                      onPress={handleAddPromotion}
-                      style={[styles.addButton, { flex: 1, marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }]}
-                      disabled={formLoading}
-                    >
-                      <Text style={styles.addButtonText}>{t("common.save")}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={clearPromoForm}
-                      style={[styles.addButton, { flex: 1, backgroundColor: isDark ? "#3d3d3d" : "#aaa", marginRight: isRTL ? 6 : 0, marginLeft: isRTL ? 0 : 6 }]}
-                      disabled={formLoading}
-                    >
-                      <Text style={styles.addButtonText}>{t("common.cancel")}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-            </ScrollView>
+  <View style={styles.formContainer}>
+    <TouchableOpacity
+      style={styles.closeButton}
+      onPress={clearPromoForm}
+    >
+      {renderIcon("X", 24, isDark ? "#ff6666" : "#c62828")}
+    </TouchableOpacity>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 40} // تعديل حسب الجهاز
+    >
+      <ScrollView
+        style={styles.formInnerContainer}
+        contentContainerStyle={styles.formScrollContainer}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+      >
+        {formLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="large"
+              color={isDark ? "#ffffff" : "#8d6e63"}
+            />
           </View>
+        ) : (
+          <>
+            <Text style={styles.formTitle}>
+              {isEditingPromo ? t("admin.editPromotion") : t("admin.addNewPromotion")}
+            </Text>
+
+            <TextInput
+              placeholder={t("admin.promotionCode")}
+              value={promoCode}
+              onChangeText={(text) => {
+                setPromoCode(text);
+                if (text.trim()) setPromoCodeError("");
+              }}
+              style={styles.inputField}
+              textAlign={isRTL ? "right" : "left"}
+            />
+            {promoCodeError ? (
+              <Text style={styles.errorText}>{promoCodeError}</Text>
+            ) : null}
+
+            <TextInput
+              placeholder={t("admin.promotionName")}
+              value={promoName}
+              onChangeText={(text) => {
+                setPromoName(text);
+                if (text.trim()) setPromoNameError("");
+              }}
+              style={styles.inputField}
+              textAlign={isRTL ? "right" : "left"}
+            />
+            {promoNameError ? (
+              <Text style={styles.errorText}>{promoNameError}</Text>
+            ) : null}
+
+            <TextInput
+              placeholder={t("admin.PromotionDescription")}
+              value={promoDescription}
+              onChangeText={(text) => {
+                setPromoDescription(text);
+                if (text.trim()) setPromoDescriptionError("");
+              }}
+              style={[styles.inputField, { minHeight: 80 }]} // زيادة الارتفاع للوصف
+              multiline
+              textAlign={isRTL ? "right" : "left"}
+            />
+            {promoDescriptionError ? (
+              <Text style={styles.errorText}>{promoDescriptionError}</Text>
+            ) : null}
+
+            <View style={styles.discountTypeContainer}>
+              {["percentage", "fixed"].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.discountTypeButton,
+                    promoDiscountType === type && styles.discountTypeButtonActive,
+                  ]}
+                  onPress={() => setPromoDiscountType(type)}
+                >
+                  <Text
+                    style={[
+                      styles.discountTypeText,
+                      promoDiscountType === type && styles.discountTypeTextActive,
+                    ]}
+                  >
+                    {t(`admin.${type}`)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              placeholder={t("admin.promotionValue")}
+              value={promoDiscountValue}
+              keyboardType="numeric"
+              onChangeText={(text) => {
+                setPromoDiscountValue(text);
+                if (!isNaN(text) && text.trim()) setPromoDiscountValueError("");
+              }}
+              style={styles.inputField}
+              textAlign={isRTL ? "right" : "left"}
+            />
+            {promoDiscountValueError ? (
+              <Text style={styles.errorText}>{promoDiscountValueError}</Text>
+            ) : null}
+
+            <TextInput
+              placeholder={t("admin.minOrderAmount")}
+              value={promoMinOrderAmount}
+              keyboardType="numeric"
+              onChangeText={(text) => {
+                setPromoMinOrderAmount(text);
+                if (!isNaN(text) && text.trim()) setPromoMinOrderAmountError("");
+              }}
+              style={styles.inputField}
+              textAlign={isRTL ? "right" : "left"}
+            />
+            {promoMinOrderAmountError ? (
+              <Text style={styles.errorText}>{promoMinOrderAmountError}</Text>
+            ) : null}
+
+            <TextInput
+              placeholder={t("admin.maxUses")} // إصلاح النص هنا
+              value={promoMaxUses}
+              keyboardType="numeric"
+              onChangeText={(text) => {
+                setPromoMaxUses(text);
+                if (!isNaN(text) && text.trim()) setPromoMaxUsesError("");
+              }}
+              style={styles.inputField}
+              textAlign={isRTL ? "right" : "left"}
+            />
+            {promoMaxUsesError ? (
+              <Text style={styles.errorText}>{promoMaxUsesError}</Text>
+            ) : null}
+
+            <TextInput
+              placeholder={t("admin.promotionStart")}
+              value={promoValidFrom}
+              onChangeText={setPromoValidFrom}
+              style={styles.inputField}
+              textAlign={isRTL ? "right" : "left"}
+            />
+
+            <TextInput
+              placeholder={t("admin.promotionEnd")}
+              value={promoValidUntil}
+              onChangeText={setPromoValidUntil}
+              style={styles.inputField}
+              textAlign={isRTL ? "right" : "left"}
+            />
+
+            <View style={{ flexDirection: isRTL ? "row-reverse" : "row", alignItems: "center", marginBottom: 12 }}>
+              <Text
+                style={[
+                  styles.detailLabel,
+                  { fontSize: 15, paddingLeft: 8 },
+                  { marginRight: isRTL ? 0 : 8, marginLeft: isRTL ? 8 : 0 },
+                ]}
+              >
+                {t("admin.activeStatus")}
+              </Text>
+              <Switch
+                value={promoActive}
+                onValueChange={setPromoActive}
+                trackColor={{ false: isDark ? "#3d3d3d" : "#e5d4c0", true: isDark ? "#4d4d4d" : "#8d6e63" }}
+                thumbColor={promoActive ? "#fff" : "#f4f3f4"}
+              />
+            </View>
+
+            <View style={{ flexDirection: isRTL ? "row-reverse" : "row", justifyContent: "space-between", marginTop: 12 }}>
+              <TouchableOpacity
+                onPress={handleAddPromotion}
+                style={[styles.addButton, { flex: 1, marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }]}
+                disabled={formLoading}
+              >
+                <Text style={styles.addButtonText}>{t("common.save")}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={clearPromoForm}
+                style={[styles.addButton, { flex: 1, backgroundColor: isDark ? "#3d3d3d" : "#aaa", marginRight: isRTL ? 6 : 0, marginLeft: isRTL ? 0 : 6 }]}
+                disabled={formLoading}
+              >
+                <Text style={styles.addButtonText}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
+        {/* إضافة padding إضافي في الأسفل عشان الكيبورد ما يغطيش الأزرار */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </View>
+)}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -106,6 +106,7 @@ export default {
     invalidCredentials: "بريد إلكتروني أو كلمة مرور غير صحيحة",
     loginSuccess: "تم تسجيل الدخول بنجاح",
     loginError: "فشل تسجيل الدخول",
+    shortPassword: "كلمة السر قصيرة",
   },
   supervisor: {
     dashboard: "لوحة التحكم",

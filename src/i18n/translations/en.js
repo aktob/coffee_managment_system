@@ -112,6 +112,7 @@ export default {
     loginSuccess: "Login successful",
     loginError: "Login failed",
     invalidEmail: "Please enter a valid email",
+    shortPassword: "short Password",
   },
   supervisor: {
     dashboard: "Dashboard",

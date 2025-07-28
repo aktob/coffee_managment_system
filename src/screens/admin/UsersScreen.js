@@ -997,205 +997,211 @@ const UsersScreen = () => {
       </ScrollView>
 
       {formVisible && (
-        <View
+  <ScrollView
+    contentContainerStyle={{
+      paddingBottom: 250, // مساحة كافية لتجنب تغطية الكيبورد
+      backgroundColor: "#fff",
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 20,
+      marginHorizontal: 16,
+      elevation: 4,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }}
+    showsVerticalScrollIndicator={true}
+    keyboardShouldPersistTaps="handled"
+  >
+    <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12, textAlign: isRTL ? "right" : "left" }}>
+      {isEditingUser
+        ? t("admin.editUser") || "تعديل المستخدم"
+        : t("admin.addNewUser") || "إضافة مستخدم جديد"}
+    </Text>
+
+    <TextInput
+      placeholder={t("admin.fullName") || "الاسم الكامل"}
+      value={userName}
+      onChangeText={(text) => {
+        setUserName(text);
+        if (text.trim()) setUserNameError("");
+      }}
+      style={styles.inputField}
+    />
+    {userNameError ? (
+      <Text style={{ color: "red", marginBottom: 10, marginLeft: 10, textAlign: isRTL ? "right" : "left" }}>
+        {userNameError}
+      </Text>
+    ) : null}
+
+    <TextInput
+      placeholder={t("admin.email") || "البريد الإلكتروني"}
+      value={userEmail}
+      keyboardType="email-address"
+      onChangeText={(text) => {
+        setUserEmail(text);
+        if (text.trim() && text.includes("@")) setUserEmailError("");
+      }}
+      style={styles.inputField}
+    />
+    {userEmailError ? (
+      <Text style={{ color: "red", marginBottom: 10, marginLeft: 10, textAlign: isRTL ? "right" : "left" }}>
+        {userEmailError}
+      </Text>
+    ) : null}
+
+    {!isEditingUser && (
+      <TextInput
+        placeholder={t("admin.password") || "كلمة المرور"}
+        value={userPassword}
+        secureTextEntry
+        onChangeText={(text) => {
+          setUserPassword(text);
+          if (text.trim() && text.length >= 6) setUserPasswordError("");
+        }}
+        style={styles.inputField}
+      />
+    )}
+    {userPasswordError && !isEditingUser ? (
+      <Text style={{ color: "red", marginBottom: 10, marginLeft: 10, textAlign: isRTL ? "right" : "left" }}>
+        {userPasswordError}
+      </Text>
+    ) : null}
+
+    <View style={{ flexDirection: isRTL ? "row-reverse" : "row", flexWrap: "wrap", marginTop: 10 }}>
+      {roles.map((role) => (
+        <TouchableOpacity
+          key={role.id}
+          onPress={() => setUserRoleId(role.id)}
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 170,
-            elevation: 4,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
+            backgroundColor: userRoleId === role.id ? "#8d6e63" : "#e5d4c0",
+            paddingVertical: 8,
+            borderRadius: 8,
+            marginRight: isRTL ? 0 : 8,
+            marginLeft: isRTL ? 8 : 0,
+            marginBottom: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            flex: 1,
           }}
         >
-          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 12 }}>
-            {isEditingUser
-              ? t("admin.editUser") || "تعديل المستخدم"
-              : t("admin.addNewUser") || "إضافة مستخدم جديد"}
+          <Text style={{ color: userRoleId === role.id ? "#fff" : "#4e342e", fontWeight: "bold" }}>
+            {role.name}
           </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+    {error && error.includes("roleRequired") ? (
+      <Text style={{ color: "red", marginBottom: 10, marginLeft: 10, textAlign: isRTL ? "right" : "left" }}>
+        {error}
+      </Text>
+    ) : null}
 
-          <TextInput
-            placeholder={t("admin.fullName") || "الاسم الكامل"}
-            value={userName}
-            onChangeText={(text) => {
-              setUserName(text);
-              if (text.trim()) setUserNameError("");
-            }}
-            style={styles.inputField}
-          />
-          {userNameError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
-              {userNameError}
-            </Text>
-          ) : null}
+    <View style={{ flexDirection: isRTL ? "row-reverse" : "row", flexWrap: "wrap", marginTop: 10 }}>
+      {branches.map((branch) => (
+        <TouchableOpacity
+          key={branch.id}
+          onPress={() => setUserBranchId(branch.id)}
+          style={{
+            backgroundColor: userBranchId === branch.id ? "#8d6e63" : "#e5d4c0",
+            paddingVertical: 8,
+            borderRadius: 8,
+            marginRight: isRTL ? 0 : 8,
+            marginLeft: isRTL ? 8 : 0,
+            marginBottom: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            flex: 1,
+          }}
+        >
+          <Text style={{ color: userBranchId === branch.id ? "#fff" : "#4e342e", fontWeight: "bold" }}>
+            {branch.name}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+    {userBranchIdError ? (
+      <Text style={{ color: "red", marginBottom: 10, marginLeft: 10, textAlign: isRTL ? "right" : "left" }}>
+        {userBranchIdError}
+      </Text>
+    ) : null}
 
-          <TextInput
-            placeholder={t("admin.email") || "البريد الإلكتروني"}
-            value={userEmail}
-            keyboardType="email-address"
-            onChangeText={(text) => {
-              setUserEmail(text);
-              if (text.trim() && text.includes("@")) setUserEmailError("");
-            }}
-            style={styles.inputField}
-          />
-          {userEmailError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
-              {userEmailError}
-            </Text>
-          ) : null}
+    <View style={{ flexDirection: isRTL ? "row-reverse" : "row", marginVertical: 10 }}>
+      <TouchableOpacity
+        onPress={() => setUserStatus("active")}
+        style={{
+          flex: 1,
+          padding: 12,
+          backgroundColor: userStatus === "active" ? "#4CAF50" : "#ddd",
+          alignItems: "center",
+          borderTopLeftRadius: isRTL ? 0 : 8,
+          borderBottomLeftRadius: isRTL ? 0 : 8,
+          borderTopRightRadius: isRTL ? 8 : 0,
+          borderBottomRightRadius: isRTL ? 8 : 0,
+        }}
+      >
+        <Text style={{ color: userStatus === "active" ? "#fff" : "#000" }}>
+          {t("common.status.active") || "نشط"}
+        </Text>
+      </TouchableOpacity>
 
-          {!isEditingUser && (
-            <TextInput
-              placeholder={t("admin.password") || "كلمة المرور"}
-              value={userPassword}
-              secureTextEntry
-              onChangeText={(text) => {
-                setUserPassword(text);
-                if (text.trim() && text.length >= 6) setUserPasswordError("");
-              }}
-              style={styles.inputField}
-            />
-          )}
-          {userPasswordError && !isEditingUser ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
-              {userPasswordError}
-            </Text>
-          ) : null}
+      <TouchableOpacity
+        onPress={() => setUserStatus("inactive")}
+        style={{
+          flex: 1,
+          padding: 12,
+          backgroundColor: userStatus === "inactive" ? "#F44336" : "#ddd",
+          alignItems: "center",
+          borderTopLeftRadius: isRTL ? 8 : 0,
+          borderBottomLeftRadius: isRTL ? 8 : 0,
+          borderTopRightRadius: isRTL ? 0 : 8,
+          borderBottomRightRadius: isRTL ? 0 : 8,
+        }}
+      >
+        <Text style={{ color: userStatus === "inactive" ? "#fff" : "#000" }}>
+          {t("common.status.inactive") || "غير نشط"}
+        </Text>
+      </TouchableOpacity>
+    </View>
 
-          <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
-            {roles.map((role) => (
-              <TouchableOpacity
-                key={role.id}
-                onPress={() => setUserRoleId(role.id)}
-                style={{
-                  backgroundColor: userRoleId === role.id ? "#8d6e63" : "#e5d4c0",
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  marginRight: 8,
-                  marginBottom: 8,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flex: 1,
-                }}
-              >
-                <Text style={{ color: userRoleId === role.id ? "#fff" : "#4e342e", fontWeight: "bold" }}>
-                  {role.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {error && error.includes("roleRequired") ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
-              {error}
-            </Text>
-          ) : null}
+    <TextInput
+      placeholder={t("admin.joinDate") || "تاريخ الانضمام (YYYY-MM-DD أو DD-MM-YYYY)"}
+      value={userJoinDate}
+      onChangeText={(text) => {
+        setUserJoinDate(text);
+        const normalized = normalizeDate(text);
+        if (!text || normalized) setUserJoinDateError("");
+        else setUserJoinDateError(t("admin.dateInvalid") || "التاريخ غير صالح، استخدم YYYY-MM-DD أو DD-MM-YYYY");
+      }}
+      style={styles.inputField}
+    />
+    {userJoinDateError ? (
+      <Text style={{ color: "red", marginBottom: 10, marginLeft: 10, textAlign: isRTL ? "right" : "left" }}>
+        {userJoinDateError}
+      </Text>
+    ) : null}
 
-          <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
-            {branches.map((branch) => (
-              <TouchableOpacity
-                key={branch.id}
-                onPress={() => setUserBranchId(branch.id)}
-                style={{
-                  backgroundColor: userBranchId === branch.id ? "#8d6e63" : "#e5d4c0",
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  marginRight: 8,
-                  marginBottom: 8,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flex: 1,
-                }}
-              >
-                <Text style={{ color: userBranchId === branch.id ? "#fff" : "#4e342e", fontWeight: "bold" }}>
-                  {branch.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {userBranchIdError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
-              {userBranchIdError}
-            </Text>
-          ) : null}
+    <View style={{ flexDirection: isRTL ? "row-reverse" : "row", justifyContent: "space-between", marginTop: 12 }}>
+      <TouchableOpacity
+        onPress={handleAddUser}
+        style={[styles.addButton, { flex: 1, marginRight: isRTL ? 0 : 6, marginLeft: isRTL ? 6 : 0 }]}
+      >
+        <Text style={styles.addButtonText}>{t("common.save") || "حفظ"}</Text>
+      </TouchableOpacity>
 
-          <View style={{ flexDirection: "row", marginVertical: 10 }}>
-            <TouchableOpacity
-              onPress={() => setUserStatus("active")}
-              style={{
-                flex: 1,
-                padding: 12,
-                backgroundColor: userStatus === "active" ? "#4CAF50" : "#ddd",
-                alignItems: "center",
-                borderTopLeftRadius: isRTL ? 0 : 8,
-                borderBottomLeftRadius: isRTL ? 0 : 8,
-                borderTopRightRadius: isRTL ? 8 : 0,
-                borderBottomRightRadius: isRTL ? 8 : 0,
-              }}
-            >
-              <Text style={{ color: userStatus === "active" ? "#fff" : "#000" }}>
-                {t("common.status.active") || "نشط"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setUserStatus("inactive")}
-              style={{
-                flex: 1,
-                padding: 12,
-                backgroundColor: userStatus === "inactive" ? "#F44336" : "#ddd",
-                alignItems: "center",
-                borderTopLeftRadius: isRTL ? 8 : 0,
-                borderBottomLeftRadius: isRTL ? 8 : 0,
-                borderTopRightRadius: isRTL ? 0 : 8,
-                borderBottomRightRadius: isRTL ? 0 : 8,
-              }}
-            >
-              <Text style={{ color: userStatus === "inactive" ? "#fff" : "#000" }}>
-                {t("common.status.inactive") || "غير نشط"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <TextInput
-            placeholder={t("admin.joinDate") || "تاريخ الانضمام (YYYY-MM-DD أو DD-MM-YYYY)"}
-            value={userJoinDate}
-            onChangeText={(text) => {
-              setUserJoinDate(text);
-              const normalized = normalizeDate(text);
-              if (!text || normalized) setUserJoinDateError("");
-              else setUserJoinDateError(t("admin.dateInvalid") || "التاريخ غير صالح، استخدم YYYY-MM-DD أو DD-MM-YYYY");
-            }}
-            style={styles.inputField}
-          />
-          {userJoinDateError ? (
-            <Text style={{ color: "red", marginBottom: 10, marginLeft: 10 }}>
-              {userJoinDateError}
-            </Text>
-          ) : null}
-
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
-            <TouchableOpacity
-              onPress={handleAddUser}
-              style={[styles.addButton, { flex: 1, marginRight: 6 }]}
-            >
-              <Text style={styles.addButtonText}>{t("common.save") || "حفظ"}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                setFormVisible(false);
-                clearUserForm();
-              }}
-              style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginLeft: 6 }]}
-            >
-              <Text style={styles.addButtonText}>{t("common.cancel") || "إلغاء"}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      <TouchableOpacity
+        onPress={() => {
+          setFormVisible(false);
+          clearUserForm();
+        }}
+        style={[styles.addButton, { flex: 1, backgroundColor: "#aaa", marginRight: isRTL ? 6 : 0, marginLeft: isRTL ? 0 : 6 }]}
+      >
+        <Text style={styles.addButtonText}>{t("common.cancel") || "إلغاء"}</Text>
+      </TouchableOpacity>
+    </View>
+  </ScrollView>
+)}
     </View>
   );
 };
