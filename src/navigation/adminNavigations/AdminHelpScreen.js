@@ -50,7 +50,7 @@ const AdminHelpScreen = ({ navigation }) => {
           onPressOut={handlePressOut}
         >
           <Animated.View style={[styles.backButton, { transform: [{ scale: scaleAnim }] }]}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backText}>Back</Text>
           </Animated.View>
         </TouchableWithoutFeedback>
         <Text style={styles.headerTitle}>Admin Help</Text>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 16,
+    paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,

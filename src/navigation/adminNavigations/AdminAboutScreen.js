@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  ScrollView,
   Animated,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 
-const AdminPrivacyScreen = ({ navigation }) => {
+const AdminAboutScreen = ({ navigation }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -35,35 +35,30 @@ const AdminPrivacyScreen = ({ navigation }) => {
           onPressOut={handlePressOut}
         >
           <Animated.View style={[styles.backButton, { transform: [{ scale: scaleAnim }] }]}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backText}>Back</Text>
           </Animated.View>
         </TouchableWithoutFeedback>
-        <Text style={styles.headerTitle}>Admin Privacy</Text>
+        <Text style={styles.headerTitle}>Admin About</Text>
         <View style={{ width: 60 }} />
       </View>
 
       {/* Content */}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
-          <Text style={styles.title}>Privacy Policy</Text>
-          <Text style={styles.paragraph}>
-            This system is committed to protecting the privacy of all users and administrators.
-            All data is encrypted and securely stored, and only authorized users have access to system content.
+          <Text style={styles.title}>About the System</Text>
+          <Text style={styles.description}>
+            This admin panel is designed to help supervisors and system administrators manage all aspects
+            of operations efficiently — from tracking orders and assigning tasks to reviewing reports and managing users.
           </Text>
-          <Text style={styles.paragraph}>
-            Any access to confidential data is logged and monitored. Admins are required to handle sensitive
-            information with full responsibility, and in compliance with company data policies.
-          </Text>
-          <Text style={styles.paragraph}>
-            For any concerns or to request data deletion, please contact the system supervisor or technical support.
-          </Text>
+          <Text style={styles.label}>Version: <Text style={styles.value}>2.1.0</Text></Text>
+          <Text style={styles.label}>Developed by: <Text style={styles.value}>CoffeeTech Team 2025</Text></Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-export default AdminPrivacyScreen;
+export default AdminAboutScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -75,7 +70,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 16,
+    paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
@@ -119,10 +114,20 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 12,
   },
-  paragraph: {
+  description: {
     fontSize: 15,
     color: '#555',
     lineHeight: 22,
     marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 6,
+  },
+  value: {
+    fontWeight: 'normal',
+    color: '#444',
   },
 });

@@ -331,10 +331,10 @@ const UsersScreen = () => {
               }
 
               setUsers(users.filter((u) => u.id !== user.id));
-              Alert.alert(
-                t("admin.deleteUser") || "حذف المستخدم",
-                t("admin.deleteUserSuccess") || "تم حذف المستخدم بنجاح"
-              );
+              // Alert.alert(
+              //   t("admin.deleteUser") || "حذف المستخدم",
+              //   t("admin.deleteUserSuccess") || "تم حذف المستخدم بنجاح"
+              // );
               fetchUsers();
             } catch (err) {
               console.error("Error deleting user:", err.message);
